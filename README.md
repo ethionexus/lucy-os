@@ -80,6 +80,14 @@ See [docs/installation.md](docs/installation.md) for setup instructions.
 - **ai-shell**: Bash wrapper with natural language command translation
 - User confirmation before execution
 - Fallback to direct execution when translation fails
+- Color-coded output
+
+### System Information Tool
+- **lucyfetch**: Custom CLI tool with Dinkinesh ASCII logo
+- Displays system information (OS, Kernel, Uptime, Memory, Disk)
+- Shows Ollama AI status (online/offline, loaded models)
+- Automatically runs on terminal open
+- Gold/Amber/Purple color theme matching Lucy OS branding
 
 ### ISO Builder
 - Custom archiso profile for Lucy OS
@@ -120,6 +128,13 @@ The AI agent includes multi-layer safety validation:
 - User confirmation prompts
 - Seamless fallback to direct execution
 - Color-coded output
+
+### System Information Tool
+- **lucyfetch**: Custom CLI tool with Dinkinesh ASCII logo
+- Displays system information (OS, Kernel, Uptime, Memory, Disk)
+- Shows Ollama AI status (online/offline, loaded models)
+- Automatically runs on terminal open
+- Gold/Amber/Purple color theme matching Lucy OS branding
 
 ## License
 

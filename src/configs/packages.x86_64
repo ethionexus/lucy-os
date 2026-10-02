@@ -29,6 +29,7 @@ netctl
 python
 python-pip
 python-pygments
+python-psutil
 rust
 cargo
 maturin

@@ -97,13 +97,26 @@ sudo ./scripts/build-iso.sh
 
 5. **Test ai-shell wrapper:**
    ```bash
-   python -c "from lucy_agent.shell_wrapper import main; print('OK')"
+   python3 -m lucy_agent.shell_wrapper "show disk usage"
+   # Should output: df -h
    ```
 
 6. **Verify ai-shell executable:**
    ```bash
    ls -l src/configs/airootfs/usr/local/bin/ai-shell
    # Should be executable
+   ```
+
+7. **Verify lucyfetch executable:**
+   ```bash
+   ls -l src/configs/airootfs/usr/local/bin/lucyfetch
+   # Should be executable
+   ```
+
+8. **Verify skel directory:**
+   ```bash
+   ls -la src/configs/airootfs/etc/skel/
+   # Should contain .bashrc
    ```
 
 ### After Building Desktop UI
@@ -221,6 +234,32 @@ sudo ./scripts/build-iso.sh
    ```bash
    # Enter untranslatable command
    # Should execute directly
+   ```
+
+### Testing lucyfetch
+
+1. **Verify lucyfetch script:**
+   ```bash
+   ls -l src/configs/airootfs/usr/local/bin/lucyfetch
+   # Should be executable (-rwxr-xr-x)
+   ```
+
+2. **Test lucyfetch execution** (requires Python environment):
+   ```bash
+   python3 src/configs/airootfs/usr/local/bin/lucyfetch
+   # Should display ASCII logo and system info
+   ```
+
+3. **Verify .bashrc configuration:**
+   ```bash
+   cat src/configs/airootfs/etc/skel/.bashrc
+   # Should contain lucyfetch invocation
+   ```
+
+4. **Test psutil dependency:**
+   ```bash
+   grep "python-psutil" src/configs/packages.x86_64
+   # Should find the package
    ```
 
 ## Development Workflow

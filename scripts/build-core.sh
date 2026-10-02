@@ -50,5 +50,13 @@ if [ -f "$AI_SHELL" ]; then
     echo "ai-shell wrapper made executable"
 fi
 
+# Make lucyfetch executable
+echo "Setting up lucyfetch tool..."
+LUCYFETCH="$CONFIGS_DIR/airootfs/usr/local/bin/lucyfetch"
+if [ -f "$LUCYFETCH" ]; then
+    chmod +x "$LUCYFETCH"
+    echo "lucyfetch tool made executable"
+fi
+
 echo "Core agent built successfully!"
 echo "To test: python -c 'import lucy_agent; print(lucy_agent.__version__)'"

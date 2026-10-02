@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+import os
+import platform
+import psutil
+import requests
+
+# ANSI Color Codes (Gold / Amber / Purple Obsidian Theme)
+GOLD = "\033[38;2;255;191;0m"
+AMBER = "\033[38;2;255;140;0m"
+PURPLE = "\033[38;2;147;112;219m"
+CYAN = "\033[38;2;0;206;209m"
+GRAY = "\033[38;2;128;128;128m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+def get_ollama_status():
+    try:
+        r = requests.get("http://localhost:11434/api/tags", timeout=1)
+        if r.status_code == 200:
+            models = r.json().get("models", [])
+            model_names = [m["name"] for m in models]
+            active_str = ", ".join(model_names) if model_names else "Ready (No models loaded)"
+            return f"{CYAN}Online{RESET} ({active_str})"
+    except Exception:
+        pass
+    return f"{GRAY}Offline (Fallback Mode){RESET}"
+
+def get_system_info():
+    uname = platform.uname()
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
+    
+    with open('/proc/uptime', 'r') as f:
+        uptime_seconds = float(f.readline().split()[0])
+        hours, remainder = divmod(int(uptime_seconds), 3600)
+        minutes, _ = divmod(remainder, 60)
+        uptime_str = f"{hours}h {minutes}m"
+
+    return [
+        (f"{GOLD}{BOLD}OS{RESET}", "Lucy OS v0.1.0 x86_64"),
+        (f"{GOLD}{BOLD}Heritage{RESET}", "Dinkinesh (3.2M YBP, Afar, ET)"),
+        (f"{GOLD}{BOLD}Kernel{RESET}", uname.release),
+        (f"{GOLD}{BOLD}Uptime{RESET}", uptime_str),
+        (f"{GOLD}{BOLD}Shell{RESET}", os.environ.get("SHELL", "/bin/bash")),
+        (f"{GOLD}{BOLD}DE{RESET}", "LXDE (Openbox)"),
+        (f"{GOLD}{BOLD}Memory{RESET}", f"{mem.used // (1024**2)}MB / {mem.total // (1024**2)}MB ({mem.percent}%)"),
+        (f"{GOLD}{BOLD}Disk{RESET}", f"{disk.used // (1024**3)}GB / {disk.total // (1024**3)}GB ({disk.percent}%)"),
+        (f"{PURPLE}{BOLD}AI Status{RESET}", get_ollama_status()),
+    ]
+
+def render_fetch():
+    ascii_logo = [
+        f"{AMBER}       .---.       {RESET}",
+        f"{AMBER}      /  .  \\      {RESET}",
+        f"{GOLD}     |  (o)  |     {RESET}",
+        f"{GOLD}     \\   -   /     {RESET}",
+        f"{GOLD}     /`'---'`\\     {RESET}",
+        f"{AMBER}    / /|   |\\ \\    {RESET}",
+        f"{AMBER}   /_/ |   | \\_\\   {RESET}",
+        f"{PURPLE}      |___|        {RESET}",
+        f"{PURPLE}     /     \\       {RESET}",
+    ]
+
+    info_lines = get_system_info()
+    user = os.environ.get("USER", "root")
+    host = platform.node()
+    header = f"{AMBER}{BOLD}{user}{RESET}@{GOLD}{BOLD}{host}{RESET}"
+    separator = f"{GRAY}" + "─" * (len(user) + len(host) + 1) + f"{RESET}"
+
+    output = []
+    output.append(f"{ascii_logo[0]}   {header}")
+    output.append(f"{ascii_logo[1]}   {separator}")
+    
+    for i in range(len(info_lines)):
+        label, value = info_lines[i]
+        logo_part = ascii_logo[i + 2] if (i + 2) < len(ascii_logo) else "                   "
+        output.append(f"{logo_part}   {label}: {value}")
+
+    print("\n" + "\n".join(output) + "\n")
+
+if __name__ == "__main__":
+    render_fetch()
