@@ -1,0 +1,81 @@
+# Lucy OS - Package list for x86_64
+
+# Base system
+base
+linux
+linux-firmware
+linux-headers
+
+# System tools
+arch-install-scripts
+base-devel
+sudo
+vim
+nano
+less
+which
+tree
+git
+curl
+wget
+openssh
+networkmanager
+wpa_supplicant
+dialog
+wireless_tools
+netctl
+
+# Python and Rust
+python
+python-pip
+python-pygments
+rust
+cargo
+maturin
+
+# AI/ML dependencies
+python-pydantic
+python-openai
+
+# Display server
+xorg-server
+xorg-xinit
+xorg-server-xvfb
+mesa
+xf86-video-amdgpu
+xf86-video-ati
+xf86-video-intel
+xf86-video-nouveau
+xf86-video-fbdev
+
+# Desktop environment
+lxde
+lxde-common
+openbox
+lxterminal
+pcmanfm
+obconf
+
+# Tauri dependencies
+webkit2gtk
+gtk3
+gdk-pixbuf2
+librsvg
+
+# System monitoring
+htop
+neofetch
+sysstat
+iotop
+
+# Additional utilities
+zip
+unzip
+p7zip
+tar
+rsync
+htop
+strace
+lsof
+usbutils
+pciutils
