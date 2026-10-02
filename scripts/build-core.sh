@@ -6,6 +6,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 CORE_DIR="$PROJECT_ROOT/src/core/python"
+CONFIGS_DIR="$PROJECT_ROOT/src/configs"
 
 echo "Building Lucy OS Core AI Agent..."
 
@@ -40,6 +41,14 @@ maturin develop
 # Install Python dependencies
 echo "Installing Python dependencies..."
 pip install -e .
+
+# Make ai-shell executable
+echo "Setting up ai-shell wrapper..."
+AI_SHELL="$CONFIGS_DIR/airootfs/usr/local/bin/ai-shell"
+if [ -f "$AI_SHELL" ]; then
+    chmod +x "$AI_SHELL"
+    echo "ai-shell wrapper made executable"
+fi
 
 echo "Core agent built successfully!"
 echo "To test: python -c 'import lucy_agent; print(lucy_agent.__version__)'"

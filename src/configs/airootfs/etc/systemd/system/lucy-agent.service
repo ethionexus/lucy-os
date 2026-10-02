@@ -1,7 +1,7 @@
 [Unit]
 Description=Lucy OS AI Agent Daemon
-After=network.target multi-user.target
-Wants=network-online.target
+After=network.target multi-user.target ollama.service
+Wants=network-online.target ollama.service
 
 [Service]
 Type=simple

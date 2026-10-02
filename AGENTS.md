@@ -59,7 +59,7 @@ sudo ./scripts/build-iso.sh
 **Prerequisites:**
 - archiso installed
 - Root privileges
-- ~20GB free disk space
+- ~25GB free disk space (increased due to Ollama)
 
 ### WSL Setup
 
@@ -90,6 +90,22 @@ sudo ./scripts/build-iso.sh
    python -c "from lucy_agent import LucyDaemon; print('OK')"
    ```
 
+4. **Test auto-healing module:**
+   ```bash
+   python -c "from lucy_agent import AutoHealDaemon; print('OK')"
+   ```
+
+5. **Test ai-shell wrapper:**
+   ```bash
+   python -c "from lucy_agent.shell_wrapper import main; print('OK')"
+   ```
+
+6. **Verify ai-shell executable:**
+   ```bash
+   ls -l src/configs/airootfs/usr/local/bin/ai-shell
+   # Should be executable
+   ```
+
 ### After Building Desktop UI
 
 1. **Check TypeScript compilation:**
@@ -108,6 +124,13 @@ sudo ./scripts/build-iso.sh
    ```bash
    npm run tauri dev
    # Verify UI loads correctly
+   # Verify splash screen appears
+   ```
+
+4. **Verify splash screen component:**
+   ```bash
+   # Check that Splash.tsx exists in src/components/
+   ls src/shell/src/components/Splash.tsx
    ```
 
 ### After Building ISO
@@ -129,7 +152,76 @@ sudo ./scripts/build-iso.sh
 
 3. **Verify ISO boots**
 4. **Check agent daemon starts**
-5. **Verify desktop UI launches**
+5. **Verify Ollama service starts**
+6. **Verify auto-heal service starts**
+7. **Verify desktop UI launches**
+8. **Check MOTD displays Dinkinesh story**
+9. **Verify wallpaper is set**
+
+### Testing Ollama Integration
+
+1. **Check Ollama service:**
+   ```bash
+   systemctl status ollama
+   ```
+
+2. **Test Ollama endpoint:**
+   ```bash
+   curl http://localhost:11434/api/tags
+   ```
+
+3. **Test Ollama fallback:**
+   ```bash
+   # Disconnect network
+   # Run agent with offline test
+   python -c "from lucy_agent import CommandTranslator; t = CommandTranslator(config={'fallback_to_ollama': True}); print(t.translate('list files'))"
+   ```
+
+### Testing Auto-Healing
+
+1. **Check auto-heal service:**
+   ```bash
+   systemctl status lucy-autoheal
+   ```
+
+2. **Test threshold checking:**
+   ```bash
+   cd src/core/rust
+   cargo test check_memory_threshold
+   cargo test check_disk_threshold
+   ```
+
+3. **Test cache clearing:**
+   ```bash
+   python -c "import lucy_core; m = lucy_core.SystemMonitor(); print(m.clear_system_cache())"
+   ```
+
+4. **Test log rotation:**
+   ```bash
+   python -c "import lucy_core; m = lucy_core.SystemMonitor(); print(m.rotate_logs('/var/log/lucy', 100))"
+   ```
+
+### Testing AI-Native Terminal
+
+1. **Test ai-shell:**
+   ```bash
+   src/configs/airootfs/usr/local/bin/ai-shell
+   # Try: "list files"
+   # Should translate to "ls -la"
+   # Confirm execution
+   ```
+
+2. **Test shell wrapper:**
+   ```bash
+   python3 -m lucy_agent.shell_wrapper "show disk usage"
+   # Should output: "df -h"
+   ```
+
+3. **Test fallback:**
+   ```bash
+   # Enter untranslatable command
+   # Should execute directly
+   ```
 
 ## Development Workflow
 
@@ -163,6 +255,49 @@ sudo ./scripts/build-iso.sh
 2. Edit `src/configs/packages.x86_64` for packages
 3. Add files to `src/configs/airootfs/`
 4. Test with `sudo mkarchiso -v src/configs`
+
+### Configuring Ollama
+
+1. Edit `src/configs/airootfs/etc/lucy/agent.conf`:
+   ```ini
+   [ai]
+   fallback_to_ollama = true
+   ollama_model = llama2
+   ollama_endpoint = http://localhost:11434
+   ```
+
+2. Add ollama to `src/configs/packages.x86_64`
+
+3. Test service startup:
+   ```bash
+   systemctl start ollama
+   systemctl status ollama
+   ```
+
+### Configuring Auto-Healing
+
+1. Edit `src/configs/airootfs/etc/lucy/agent.conf`:
+   ```ini
+   [auto_healing]
+   enabled = true
+   memory_threshold = 85
+   disk_threshold = 90
+   clear_cache = true
+   rotate_logs = true
+   max_log_size = 100M
+   check_interval = 300
+   ```
+
+2. Enable service:
+   ```bash
+   systemctl enable lucy-autoheal
+   systemctl start lucy-autoheal
+   ```
+
+3. Monitor logs:
+   ```bash
+   journalctl -u lucy-autoheal -f
+   ```
 
 ## Code Conventions
 

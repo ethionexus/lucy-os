@@ -36,6 +36,7 @@ maturin
 # AI/ML dependencies
 python-pydantic
 python-openai
+ollama
 
 # Display server
 xorg-server

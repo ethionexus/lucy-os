@@ -1,0 +1,48 @@
+#!/bin/bash
+# AI-Native Shell Wrapper for Lucy OS
+
+PYTHON_SCRIPT="/usr/lib/python3.11/site-packages/lucy_agent/shell_wrapper.py"
+
+# Color codes for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo -e "${GREEN}Lucy OS AI-Native Shell${NC}"
+echo -e "${YELLOW}Type 'exit' to quit, or enter natural language commands${NC}"
+echo ""
+
+while true; do
+    read -p "ai-shell$ " input
+
+    # Check for exit command
+    if [ "$input" = "exit" ] || [ "$input" = "quit" ]; then
+        echo "Goodbye!"
+        break
+    fi
+
+    # Skip empty input
+    if [ -z "$input" ]; then
+        continue
+    fi
+
+    # Pass to Python translator
+    result=$(python3 "$PYTHON_SCRIPT" "$input" 2>&1)
+    exit_code=$?
+
+    if [ $exit_code -eq 0 ] && [ -n "$result" ] && [ "$result" != "NO_TRANSLATION" ]; then
+        echo -e "${GREEN}Translated command:${NC} $result"
+        read -p "Execute? (y/n) " confirm
+
+        if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ] || [ "$confirm" = "yes" ]; then
+            eval "$result"
+        else
+            echo -e "${YELLOW}Command cancelled${NC}"
+        fi
+    else
+        # Execute directly if translation fails or is not available
+        echo -e "${YELLOW}No translation available, executing directly${NC}"
+        eval "$input"
+    fi
+done

@@ -1,0 +1,22 @@
+[Unit]
+Description=Lucy OS Auto-Healing Daemon
+After=network.target multi-user.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 -m lucy_agent.autoheal
+Restart=always
+RestartSec=60
+StandardOutput=journal
+StandardError=journal
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/lucy /var/cache
+
+[Install]
+WantedBy=multi-user.target

@@ -22,7 +22,7 @@ class LucyDaemon:
 
     def __init__(self, config_path: Optional[str] = None):
         self.config = self._load_config(config_path)
-        self.translator = CommandTranslator()
+        self.translator = CommandTranslator(config=self.config)
         self.safety = SafetyValidator()
         self.executor = None
 

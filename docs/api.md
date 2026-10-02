@@ -90,7 +90,7 @@ Natural language to command translation.
 ```python
 from lucy_agent import CommandTranslator
 
-translator = CommandTranslator()
+translator = CommandTranslator(config={'fallback_to_ollama': True})
 intent = translator.translate("list files")
 print(intent.command)  # "ls -la"
 ```
@@ -121,6 +121,18 @@ Add a new translation pattern.
 **`get_patterns() -> List[str]`**
 
 Get all registered patterns.
+
+---
+
+**`has_internet() -> bool`**
+
+Check if internet connection is available.
+
+---
+
+**`translate_with_ollama(text: str) -> CommandIntent`**
+
+Translate using local Ollama when offline.
 
 #### SafetyValidator
 
@@ -161,6 +173,59 @@ Add a dangerous pattern.
 **`add_safe_command(command: str)`**
 
 Add a safe command.
+
+#### AutoHealDaemon
+
+Auto-healing system daemon for resource management.
+
+```python
+from lucy_agent import AutoHealDaemon
+
+daemon = AutoHealDaemon(config_path="/etc/lucy/agent.conf")
+await daemon.run()
+```
+
+##### Methods
+
+**`check_memory() -> bool`**
+
+Check if memory usage exceeds threshold.
+
+**Returns:** `True` if threshold exceeded
+
+---
+
+**`check_disk() -> bool`**
+
+Check if disk usage exceeds threshold.
+
+**Returns:** `True` if threshold exceeded
+
+---
+
+**`perform_healing() -> List[str]`**
+
+Perform auto-healing actions.
+
+**Returns:** List of actions taken (e.g., ["cache_cleared", "logs_rotated"])
+
+---
+
+**`start()`**
+
+Start the auto-healing daemon.
+
+---
+
+**`stop()`**
+
+Stop the auto-healing daemon.
+
+---
+
+**`run()`**
+
+Run the auto-healing daemon main loop.
 
 ### Rust API
 
@@ -270,6 +335,48 @@ Get (used, total) memory in bytes.
 **`get_disk_usage() -> (u64, u64)`**
 
 Get (used, total) disk in bytes.
+
+---
+
+**`check_memory_threshold(threshold_percent: f32) -> bool`**
+
+Check if memory usage exceeds threshold.
+
+**Parameters:**
+- `threshold_percent`: Threshold percentage (e.g., 85.0)
+
+**Returns:** `true` if threshold exceeded
+
+---
+
+**`check_disk_threshold(threshold_percent: f32) -> bool`**
+
+Check if disk usage exceeds threshold.
+
+**Parameters:**
+- `threshold_percent`: Threshold percentage (e.g., 90.0)
+
+**Returns:** `true` if threshold exceeded
+
+---
+
+**`clear_system_cache() -> PyResult<String>`**
+
+Clear system cache safely.
+
+**Returns:** Result message with count of cleared directories
+
+---
+
+**`rotate_logs(log_dir: &str, max_size_mb: u64) -> PyResult<String>`**
+
+Rotate logs exceeding size limit.
+
+**Parameters:**
+- `log_dir`: Path to log directory
+- `max_size_mb`: Maximum size in MB
+
+**Returns:** Result message with count of rotated files
 
 #### Logging
 
@@ -388,6 +495,20 @@ enable_whitelist = true
 model = gpt-3.5-turbo
 max_tokens = 500
 temperature = 0.7
+
+# Ollama fallback
+fallback_to_ollama = true
+ollama_model = llama2
+ollama_endpoint = http://localhost:11434
+
+[auto_healing]
+enabled = true
+memory_threshold = 85
+disk_threshold = 90
+clear_cache = true
+rotate_logs = true
+max_log_size = 100M
+check_interval = 300
 ```
 
 ### Environment Variables
@@ -395,6 +516,55 @@ temperature = 0.7
 - `LUCY_LOG_DIR`: Override log directory
 - `LUCY_CONFIG_PATH`: Path to config file
 - `LUCY_IPC_PORT`: Override IPC port
+
+## AI-Native Terminal API
+
+### ai-shell
+
+Bash wrapper with natural language command translation.
+
+**Location:** `/usr/local/bin/ai-shell`
+
+**Usage:**
+```bash
+ai-shell
+```
+
+**Features:**
+- Natural language to command translation
+- User confirmation before execution
+- Fallback to direct execution
+- Color-coded output
+
+**Example Session:**
+```bash
+ai-shell$ list files
+Translated command: ls -la
+Execute? (y/n) y
+# Output of ls -la
+
+ai-shell$ show disk usage
+Translated command: df -h
+Execute? (y/n) y
+# Output of df -h
+
+ai-shell$ exit
+Goodbye!
+```
+
+### Shell Wrapper Python Module
+
+**Module:** `lucy_agent.shell_wrapper`
+
+**Usage:**
+```bash
+python3 -m lucy_agent.shell_wrapper "show disk usage"
+# Output: df -h
+```
+
+**Returns:**
+- Translated command on stdout
+- "NO_TRANSLATION" on stderr if translation fails
 
 ## IPC Protocol
 

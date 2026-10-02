@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import Chat from "./components/Chat";
 import SystemMonitor from "./components/SystemMonitor";
 import LogViewer from "./components/LogViewer";
+import Splash from "./components/Splash";
 
 interface SystemInfo {
   cpu_usage: number;
@@ -14,6 +15,7 @@ interface SystemInfo {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [activeTab, setActiveTab] = useState<"chat" | "monitor" | "logs">("chat");
 
@@ -33,10 +35,12 @@ function App() {
   }, []);
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1>Lucy OS</h1>
-        <nav className="nav">
+    <>
+      {showSplash && <Splash onComplete={() => setShowSplash(false)} />}
+      <div className="app">
+        <header className="header">
+          <h1>Lucy OS</h1>
+          <nav className="nav">
           <button
             className={activeTab === "chat" ? "active" : ""}
             onClick={() => setActiveTab("chat")}
@@ -119,6 +123,7 @@ function App() {
         }
       `}</style>
     </div>
+    </>
   );
 }
 

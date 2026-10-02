@@ -1,6 +1,8 @@
 use pyo3::prelude::*;
 use serde::Serialize;
 use sysinfo::{System, SystemExt, CpuExt, DiskExt, ProcessExt};
+use std::fs;
+use std::path::Path;
 
 #[derive(Serialize)]
 #[pyclass]
@@ -89,5 +91,81 @@ impl SystemMonitor {
         let total: u64 = self.system.disks().iter().map(|d| d.total_space()).sum();
         let available: u64 = self.system.disks().iter().map(|d| d.available_space()).sum();
         (total - available, total)
+    }
+
+    /// Check if memory usage exceeds threshold
+    fn check_memory_threshold(&self, threshold_percent: f32) -> bool {
+        let (used, total) = self.get_memory_usage();
+        let used_percent = (used as f32 / total as f32) * 100.0;
+        used_percent >= threshold_percent
+    }
+
+    /// Check if disk usage exceeds threshold
+    fn check_disk_threshold(&self, threshold_percent: f32) -> bool {
+        let (used, total) = self.get_disk_usage();
+        let used_percent = (used as f32 / total as f32) * 100.0;
+        used_percent >= threshold_percent
+    }
+
+    /// Clear system cache safely
+    fn clear_system_cache(&self) -> PyResult<String> {
+        let paths_to_clear = vec![
+            "/var/cache",
+            "/tmp",
+        ];
+
+        let mut cleared = 0;
+        for path in paths_to_clear {
+            if Path::new(path).exists() {
+                // Only clear safe directories
+                if path == "/tmp" {
+                    if let Err(e) = fs::remove_dir_all(path) {
+                        if e.kind() != std::io::ErrorKind::NotFound {
+                            return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                                format!("Failed to clear {}: {}", path, e),
+                            ));
+                        }
+                    }
+                    fs::create_dir_all(path).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                            format!("Failed to recreate {}: {}", path, e),
+                        )
+                    })?;
+                    cleared += 1;
+                }
+            }
+        }
+
+        Ok(format!("Cleared {} cache directories", cleared))
+    }
+
+    /// Rotate logs in specified directory
+    fn rotate_logs(&self, log_dir: &str, max_size_mb: u64) -> PyResult<String> {
+        let log_path = Path::new(log_dir);
+        if !log_path.exists() {
+            return Ok("Log directory does not exist".to_string());
+        }
+
+        let max_size_bytes = max_size_mb * 1024 * 1024;
+        let mut rotated = 0;
+
+        if let Ok(entries) = fs::read_dir(log_path) {
+            for entry in entries.flatten() {
+                if let Ok(metadata) = entry.metadata() {
+                    if metadata.len() > max_size_bytes {
+                        let file_path = entry.path();
+                        let new_path = format!("{}.old", file_path.display());
+                        fs::rename(&file_path, &new_path).map_err(|e| {
+                            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                                format!("Failed to rotate log {}: {}", file_path.display(), e),
+                            )
+                        })?;
+                        rotated += 1;
+                    }
+                }
+            }
+        }
+
+        Ok(format!("Rotated {} log files", rotated))
     }
 }

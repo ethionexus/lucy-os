@@ -1,0 +1,21 @@
+[Unit]
+Description=Ollama Local LLM Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/ollama serve
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
