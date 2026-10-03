@@ -35,10 +35,23 @@ RUN pacman -S --noconfirm --needed \
     openssl
 
 # Optional dependencies that are not present in every mirror
-# snapshot (pacman reports "target not found" for webkit2gtk,
-# soup3, and the AppIndicator library). Install each one
-# best-effort so the ISO build continues without them.
-RUN for pkg in webkit2gtk soup3 libappindicator-gtk3; do \
+# snapshot (pacman reports "target not found"). Install each one
+# best-effort so the ISO build continues without them. Alternate
+# package names are probed so that a mirror carrying WebKit or
+# Soup under a different name still installs the real libraries.
+RUN for pkg in \
+        webkit2gtk \
+        webkit2gtk-4.1 \
+        webkit2gtk-6.0 \
+        webkitgtk \
+        webkitgtk-4.1 \
+        wpewebkit \
+        soup3 \
+        libsoup3 \
+        libsoup-3.0 \
+        libsoup \
+        libappindicator-gtk3 \
+        libayatana-appindicator; do \
         pacman -S --noconfirm --needed "$pkg" || \
             echo "warning: $pkg unavailable; continuing"; \
     done

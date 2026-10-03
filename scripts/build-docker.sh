@@ -26,9 +26,25 @@ cd "$PROJECT_ROOT"
 docker build -t lucy-os-builder .
 
 echo "Running ISO build in container..."
+
+# Reuse the Tauri app bundle when it was already built on the
+# host (the GitHub Actions workflow builds it before the Docker
+# ISO build). This avoids rebuilding WebKit-dependent code inside
+# the container on systems where the WebKit development packages
+# are unavailable.
+SKIP_TAURI=()
+BUNDLE_DIR="$PROJECT_ROOT/src/shell/src-tauri/target/release/bundle"
+if [ -d "$BUNDLE_DIR" ] && [ -n "$(ls -A "$BUNDLE_DIR" 2>/dev/null)" ]; then
+    SKIP_TAURI=(-e LUCY_SKIP_TAURI_BUILD=1)
+    echo "Host-built Tauri bundle found; reusing it in the container"
+fi
+
 docker run --rm \
+  "${SKIP_TAURI[@]}" \
   -v "$(pwd)/dist:/build/dist" \
   -v "$(pwd)/work:/build/work" \
+  -v "$(pwd)/src/core/python/target/wheels:/build/src/core/python/target/wheels" \
+  -v "$BUNDLE_DIR:/build/src/shell/src-tauri/target/release/bundle" \
   --privileged \
   lucy-os-builder \
   ./scripts/build-iso.sh

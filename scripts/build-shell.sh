@@ -28,8 +28,20 @@ echo "Installing Node.js dependencies..."
 npm install
 
 # Build Tauri app
-echo "Building Tauri application..."
-npm run tauri build
+if [ -n "${LUCY_SKIP_TAURI_BUILD:-}" ]; then
+    echo "LUCY_SKIP_TAURI_BUILD is set; reusing existing Tauri release bundle"
+    if [ ! -d "src-tauri/target/release/bundle" ] || [ -z "$(ls -A src-tauri/target/release/bundle 2>/dev/null)" ]; then
+        echo "Error: LUCY_SKIP_TAURI_BUILD is set but no release bundle exists at"
+        echo "src-tauri/target/release/bundle. Build the app first (npm run tauri"
+        echo "build) or unset LUCY_SKIP_TAURI_BUILD."
+        exit 1
+    fi
+    echo "Release bundle found:"
+    ls -R src-tauri/target/release/bundle | head -20
+else
+    echo "Building Tauri application..."
+    npm run tauri build
+fi
 
 echo "Desktop UI built successfully!"
 echo "Output location: $SHELL_DIR/src-tauri/target/release/bundle/"

@@ -56,13 +56,13 @@ echo "Step 2: Building desktop UI..."
 echo "Step 3: Injecting artifacts into archiso profile..."
 
 # Copy built agent to airootfs
-if [ -d "$PROJECT_ROOT/src/core/python/target/wheels" ]; then
+if [ -d "$PROJECT_ROOT/src/core/python/target/wheels" ] && [ -n "$(ls -A "$PROJECT_ROOT/src/core/python/target/wheels" 2>/dev/null)" ]; then
     mkdir -p "$CONFIGS_DIR/airootfs/opt/lucy"
     cp -r "$PROJECT_ROOT/src/core/python/target/wheels"/* "$CONFIGS_DIR/airootfs/opt/lucy/"
 fi
 
 # Copy built Tauri app to airootfs
-if [ -d "$PROJECT_ROOT/src/shell/src-tauri/target/release/bundle" ]; then
+if [ -d "$PROJECT_ROOT/src/shell/src-tauri/target/release/bundle" ] && [ -n "$(ls -A "$PROJECT_ROOT/src/shell/src-tauri/target/release/bundle" 2>/dev/null)" ]; then
     mkdir -p "$CONFIGS_DIR/airootfs/opt/lucy-shell"
     cp -r "$PROJECT_ROOT/src/shell/src-tauri/target/release/bundle"/* "$CONFIGS_DIR/airootfs/opt/lucy-shell/"
 fi
