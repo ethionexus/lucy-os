@@ -31,13 +31,14 @@ jobs:
     - name: Cache cargo build
       uses: actions/cache@v4
       with:
+        # Cache only the dependency downloads. The Cargo.lock files are
+        # generated during the build (not committed), so hashFiles cannot
+        # be used in the key, and the target/ directories are multi-GB
+        # build outputs that risk the cache size limit.
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          src/core/rust/target
-          src/core/python/target
-          src/shell/src-tauri/target
-        key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/Cargo.toml') }}
+        key: cargo-${{ runner.os }}-v1
         restore-keys: |
           cargo-${{ runner.os }}-
 
@@ -125,28 +126,14 @@ jobs:
         sudo apt-get clean || true
         df -h /
 
-    - name: Diagnose Docker environment
-      run: |
-        set +e
-        echo "::error::K01 docker_path=$(command -v docker || echo NONE)"
-        echo "::error::K02 docker_ver=$(docker --version 2>&1 | head -1)"
-        docker info > /tmp/dinfo.log 2>&1; echo "::error::K03 docker_info_exit=$? head=[$(head -6 /tmp/dinfo.log | tr '\n' ' ' | cut -c1-300)]"
-        echo "::error::K04 docker_images=[$(docker images 2>&1 | head -4 | tr '\n' ' ' | cut -c1-300)]"
-        mkdir -p /tmp/dtest && cd /tmp/dtest
-        printf 'FROM alpine:latest\nRUN echo hello-from-alpine\n' > Dockerfile
-        docker build -t lucy-dtest . > /tmp/dbuild.log 2>&1; echo "::error::K05 docker_build_exit=$? tail=[$(tail -4 /tmp/dbuild.log | tr '\n' ' ' | cut -c1-300)]"
-        docker run --rm lucy-dtest echo run-ok > /tmp/drun.log 2>&1; echo "::error::K06 docker_run_exit=$? out=[$(cat /tmp/drun.log | tr '\n' ' ' | cut -c1-200)]"
-        cd "$GITHUB_WORKSPACE"
-
     - name: Build ISO (Docker)
       run: |
         set +e
         ./scripts/build-docker.sh > /tmp/lucy-docker.log 2>&1
         rc=$?
-        echo "::error::DOCKER_EXIT=$rc"
-        echo "::error::DOCKER_ERRORS=[$(grep -iE 'error|failed|not found|unable|cannot|invalid|target not found|no package' /tmp/lucy-docker.log | head -20 | tr '\n' ' ' | cut -c1-3000)]"
-        echo "::error::DOCKER_TAIL=[$(tail -20 /tmp/lucy-docker.log | tr '\n' ' ' | cut -c1-2000)]"
         if [ $rc -ne 0 ]; then
+          echo "::error::Docker ISO build failed (exit $rc)"
+          echo "::error::DOCKER_TAIL=[$(tail -20 /tmp/lucy-docker.log | tr '\n' ' ' | cut -c1-2000)]"
           exit 1
         fi
         echo "Verifying ISO output..."
