@@ -31,7 +31,6 @@ python-pip
 python-pygments
 python-psutil
 rust
-cargo
 maturin
 
 # AI/ML dependencies
@@ -55,7 +54,6 @@ lxde-common
 openbox
 lxterminal
 pcmanfm
-obconf
 
 # Boot loader
 syslinux
