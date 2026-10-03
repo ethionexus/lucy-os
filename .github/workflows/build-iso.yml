@@ -92,6 +92,27 @@ jobs:
         pip install --upgrade pip
         pip install maturin requests pydantic openai ollama psutil
 
+    - name: Diagnose build environment
+      run: |
+        set +e
+        echo "::error::DIAG01 rustc_path=$(command -v rustc || echo NONE)"
+        echo "::error::DIAG02 rustc_ver=$(rustc --version 2>&1 | head -1)"
+        echo "::error::DIAG03 cargo_path=$(command -v cargo || echo NONE)"
+        echo "::error::DIAG04 cargo_ver=$(cargo --version 2>&1 | head -1)"
+        echo "::error::DIAG05 rustup=$(command -v rustup || echo NONE)"
+        echo "::error::DIAG06 python3=$(python3 --version 2>&1)"
+        echo "::error::DIAG07 maturin_path=$(command -v maturin || echo NONE)"
+        echo "::error::DIAG08 maturin_ver=$(maturin --version 2>&1 | head -1)"
+        echo "::error::DIAG09 node=$(node --version 2>&1 | head -1)"
+        echo "::error::DIAG10 npm=$(npm --version 2>&1 | head -1)"
+        echo "::error::DIAG11 cc=$(command -v cc || command -v gcc || echo NONE)"
+        echo "::error::DIAG12 cargo_home=$CARGO_HOME"
+        echo "::error::DIAG13 ls_cargo_bin=$(ls ~/.cargo/bin 2>/dev/null | tr '\n' ' ')"
+        echo "::error::DIAG14 cratesio=$(curl -sS -m 10 -o /dev/null -w '%{http_code}' https://crates.io/api/v1/crates/pyo3 2>&1 | tail -1)"
+        echo "::error::DIAG15 static_crates=$(curl -sS -m 10 -o /dev/null -w '%{http_code}' https://static.crates.io/ 2>&1 | tail -1)"
+        echo "::error::DIAG16 sh_rustup=$(curl -sS -m 10 -o /dev/null -w '%{http_code}' https://sh.rustup.rs 2>&1 | tail -1)"
+        (cd /tmp && rm -rf cgtest && cargo new cgtest >/dev/null 2>&1 && cd cgtest && cargo build >/dev/null 2>/tmp/cgerr); echo "::error::DIAG17 cargo_build_exit=$? err=$(head -3 /tmp/cgerr 2>/dev/null | tr '\n' ' ' | cut -c1-300)"
+
     - name: Build core agent
       run: ./scripts/build-core.sh
 
