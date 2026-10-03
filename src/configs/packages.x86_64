@@ -55,6 +55,14 @@ openbox
 lxterminal
 pcmanfm
 
+# Live wallpaper (X11 video background via lucy-wallpaper)
+mpv
+xdotool
+xorg-xprop
+
+# USB persistence (partitioning for live USB cow store)
+parted
+
 # Boot loader
 syslinux
 mtools

@@ -1,0 +1,15 @@
+[Unit]
+Description=Lucy OS Live Wallpaper Service
+Documentation=man:lucy-wallpaper(1)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+# Runs as the logged-in user so it can access the X display.
+ExecStart=/usr/local/bin/lucy-wallpaper
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

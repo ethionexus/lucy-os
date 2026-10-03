@@ -4,6 +4,7 @@ import Chat from "./components/Chat";
 import SystemMonitor from "./components/SystemMonitor";
 import LogViewer from "./components/LogViewer";
 import Splash from "./components/Splash";
+import Welcome from "./components/Welcome";
 
 interface SystemInfo {
   cpu_usage: number;
@@ -16,8 +17,22 @@ interface SystemInfo {
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [activeTab, setActiveTab] = useState<"chat" | "monitor" | "logs">("chat");
+
+  // Play the lucy-intro welcome experience on first launch. The flag is
+  // kept in the webview's localStorage, so it persists across app restarts
+  // (and is naturally reset on a fresh, non-persistent live boot).
+  useEffect(() => {
+    let welcomed = false;
+    try {
+      welcomed = localStorage.getItem("lucy.welcomed") === "1";
+    } catch {
+      /* storage unavailable — non-fatal */
+    }
+    if (!welcomed) setShowWelcome(true);
+  }, []);
 
   useEffect(() => {
     const fetchSystemInfo = async () => {
@@ -37,6 +52,9 @@ function App() {
   return (
     <>
       {showSplash && <Splash onComplete={() => setShowSplash(false)} />}
+      {!showSplash && showWelcome && (
+        <Welcome onComplete={() => setShowWelcome(false)} />
+      )}
       <div className="app">
         <header className="header">
           <h1>Lucy OS</h1>

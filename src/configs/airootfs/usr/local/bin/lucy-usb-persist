@@ -1,0 +1,83 @@
+#!/bin/bash
+# lucy-usb-persist - Enable USB persistence on the boot medium.
+#
+# Creates a labeled partition in the trailing free space of the USB drive the
+# Lucy OS live medium was booted from. After rebooting, select the
+# "USB persistence" boot entry (or add cow_label=LUCY_PERSIST to the kernel
+# command line) and your changes will persist across reboots.
+#
+# The archiso mkinitcpio hook locates the partition at
+# /dev/disk/by-label/LUCY_PERSIST and uses it as a copy-on-write store for the
+# whole root filesystem (overlayfs), so installed packages, settings and
+# files all survive reboots.
+
+set -uo pipefail
+
+COW_LABEL="LUCY_PERSIST"
+MIN_FREE_MIB=256
+
+log() { echo "lucy-usb-persist: $*"; }
+die() { echo "lucy-usb-persist: error: $*" >&2; exit 1; }
+
+# Resolve the physical device backing the boot medium.
+find_boot_device() {
+    local src
+    src=$(findmnt -rn -o SOURCE /run/archiso/bootmnt 2>/dev/null)
+    [ -n "$src" ] || return 1
+    # /dev/sda1 -> /dev/sda ; /dev/nvme0n1p1 -> /dev/nvme0n1
+    printf '%s\n' "$src" | sed -E 's/p?[0-9]+$//'
+}
+
+# Need root to partition and format.
+[ "$(id -u)" -eq 0 ] || die "must be run as root (try: sudo lucy-usb-persist)"
+
+for tool in parted mkfs.ext4 findmnt; do
+    command -v "$tool" >/dev/null 2>&1 || die "'$tool' is required"
+done
+
+device=$(find_boot_device) || die "could not determine the boot device"
+[ -b "$device" ] || die "boot device '$device' is not a block device"
+
+log "boot medium detected on $device"
+echo
+lsblk "$device" 2>/dev/null || true
+echo
+read -r -p "This will create a persistence partition on $device. Continue? (yes/N) " reply
+[ "$reply" = "yes" ] || { log "aborted"; exit 0; }
+
+# Locate the trailing free space left by the isohybrid MBR.
+free_info=$(LC_ALL=C parted --script "$device" unit MiB print free 2>/dev/null |
+    awk '/Free Space/ { gsub(/MiB/, "", $2); gsub(/MiB/, "", $3); s=$2; e=$3 } END { print s, e }')
+free_start=${free_info% *}
+free_end=${free_info#* }
+
+[ -n "$free_start" ] && [ -n "$free_end" ] ||
+    die "no free space on $device; use a USB drive larger than the ISO"
+free_size=$(( free_end - free_start ))
+[ "$free_size" -ge "$MIN_FREE_MIB" ] ||
+    die "only ${free_size} MiB free (need at least ${MIN_FREE_MIB} MiB)"
+
+log "creating persistence partition (${free_size} MiB, label ${COW_LABEL})..."
+parted --script --align optimal "$device" mkpart primary ext4 "${free_start}MiB" "100%"
+
+if [[ "$device" =~ (nvme|mmcblk) ]]; then
+    part="${device}p2"
+else
+    part="${device}2"
+fi
+
+# Wait for the kernel to register the new partition.
+tries=0
+while [ ! -b "$part" ] && [ "$tries" -lt 20 ]; do
+    partprobe "$device" >/dev/null 2>&1 || true
+    sleep 0.5
+    tries=$(( tries + 1 ))
+done
+[ -b "$part" ] || die "partition $part did not appear"
+
+mkfs.ext4 -F -L "$COW_LABEL" "$part" >/dev/null || die "failed to format $part"
+
+echo
+log "persistence partition created: $part (label ${COW_LABEL})"
+log "reboot and choose 'USB persistence' from the boot menu."
+log "your changes will now persist across reboots."

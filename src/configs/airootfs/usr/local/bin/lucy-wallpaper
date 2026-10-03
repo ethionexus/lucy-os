@@ -1,0 +1,98 @@
+#!/bin/bash
+# Lucy OS Live Wallpaper Engine (X11)
+#
+# Loops lucy-wallpaper-live.mp4 as the desktop background. The engine
+# prefers xwinwrap (override-redirect => the video sits cleanly beneath
+# the desktop icons and panels). When xwinwrap is not installed it falls
+# back to mpv rendered inside a _NET_WM_WINDOW_TYPE_DESKTOP window, and
+# finally to the static wallpaper shipped with Openbox.
+
+set -uo pipefail
+
+VIDEO="/usr/share/lucy/lucy-wallpaper-live.mp4"
+PIDFILE="/tmp/lucy-wallpaper-${UID}.pid"
+
+log() { echo "lucy-wallpaper: $*"; }
+
+# Guard against a second instance.
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    log "already running (pid $(cat "$PIDFILE"))"
+    exit 0
+fi
+
+# The live wallpaper needs an X11 session.
+: "${DISPLAY:=:0}"
+export DISPLAY
+if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+    log "Wayland session detected; live wallpaper needs X11. Using static wallpaper."
+    exit 0
+fi
+
+# The live video asset must be present; otherwise the static
+# wallpaper configured in Openbox (lxde-rc.xml) remains in effect.
+if [ ! -f "$VIDEO" ]; then
+    log "live video not found ($VIDEO); using static wallpaper"
+    exit 0
+fi
+
+command -v mpv >/dev/null 2>&1 || {
+    log "mpv not installed; using static wallpaper"
+    exit 0
+}
+
+# --- Method 1: xwinwrap + mpv (clean, override-redirect background) -------
+if command -v xwinwrap >/dev/null 2>&1; then
+    log "starting live wallpaper via xwinwrap on $DISPLAY"
+    # xwinwrap creates an override-redirect, fullscreen, below window and
+    # substitutes the literal WID with that window's X id before exec'ing
+    # mpv, which then renders the looping video into it.
+    exec xwinwrap -ov -fs -sp -nf -b -- \
+        mpv --wid WID \
+            --loop-file=inf \
+            --no-audio \
+            --no-osc \
+            --no-osd-bar \
+            --no-input-default-bindings \
+            --no-config \
+            "$VIDEO"
+fi
+
+# --- Method 2: mpv + _NET_WM_WINDOW_TYPE_DESKTOP (in-repo fallback) -------
+log "xwinwrap not found; using mpv desktop-window fallback"
+mpv \
+    --geometry=100%x100%+0+0 \
+    --no-ontop \
+    --no-audio \
+    --loop-file=inf \
+    --no-osc \
+    --no-osd-bar \
+    --no-input-default-bindings \
+    --no-config \
+    "$VIDEO" &
+MPV_PID=$!
+echo "$MPV_PID" > "$PIDFILE"
+log "started live wallpaper (mpv pid $MPV_PID)"
+
+# Tag the window as a desktop background so the EWMH-compliant window
+# manager keeps it beneath normal windows, then lower it below the
+# desktop icons and remove focus.
+if command -v xdotool >/dev/null 2>&1 && command -v xprop >/dev/null 2>&1; then
+    WIN=""
+    tries=0
+    while [ "$tries" -lt 50 ]; do
+        WIN=$(xdotool search --pid "$MPV_PID" 2>/dev/null | head -1)
+        [ -n "$WIN" ] && break
+        kill -0 "$MPV_PID" 2>/dev/null || break
+        sleep 0.1
+        tries=$((tries + 1))
+    done
+    if [ -n "$WIN" ]; then
+        xprop -id "$WIN" -f _NET_WM_WINDOW_TYPE 32a \
+            -set _NET_WM_WINDOW_TYPE _NET_WM_WINDOW_TYPE_DESKTOP >/dev/null 2>&1
+        xdotool windowlower "$WIN" >/dev/null 2>&1
+        xdotool windowunfocus "$WIN" >/dev/null 2>&1
+    fi
+fi
+
+wait "$MPV_PID"
+rm -f "$PIDFILE"

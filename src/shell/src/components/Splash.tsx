@@ -34,7 +34,7 @@ export default function Splash({ onComplete }: SplashProps) {
           alt="Lucy OS Logo"
           className="logo"
         />
-        <h1 className="tagline">Lucy OS v0.1.0</h1>
+        <h1 className="tagline">Lucy OS v0.2.0</h1>
         <p className="subtitle">Rooted in Origins, Powered by AI</p>
         <div className="loading-bar">
           <div className="loading-fill" style={{ width: `${progress}%` }} />

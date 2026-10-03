@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Lucy OS Live Wallpaper
+Comment=Loop lucy-wallpaper-live.mp4 as the desktop background
+# Prefer the systemd user service; fall back to running the
+# engine directly when the user session bus is not yet available.
+Exec=sh -c 'systemctl --user start lucy-wallpaper.service 2>/dev/null || /usr/local/bin/lucy-wallpaper'
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=10
+NoDisplay=true
