@@ -339,6 +339,43 @@ This checks:
 3. Integrate in `src/shell/src/App.tsx`
 4. Add navigation tab
 
+### v0.2.0 Features
+
+#### Welcome App (lucy-intro)
+
+First-boot glassmorphism intro that plays `lucy-intro.mp4` (obsidian + gold
+theme). Shown once, tracked via the webview's `localStorage`
+(`lucy.welcomed`). Falls back to a Dinknesh history slideshow when the
+media asset is absent.
+
+- Component: `src/shell/src/components/Welcome.tsx`
+- Media asset: `src/shell/public/media/lucy-intro.mp4`
+- Integrated in `src/shell/src/App.tsx` (after the splash)
+
+#### Live Wallpaper Service
+
+Loops `lucy-wallpaper-live.mp4` as the X11 desktop background.
+
+- Engine: `src/configs/airootfs/usr/local/bin/lucy-wallpaper`
+- Video asset: `src/configs/airootfs/usr/share/lucy/lucy-wallpaper-live.mp4`
+- systemd user service: `src/configs/airootfs/etc/systemd/user/lucy-wallpaper.service`
+- XDG autostart: `src/configs/airootfs/etc/xdg/autostart/lucy-wallpaper.desktop`
+- Uses `xwinwrap` + `mpv` when `xwinwrap` is installed (AUR); otherwise an
+  `mpv` desktop-window fallback, then the static Openbox wallpaper.
+
+#### USB Persistence
+
+Live-USB persistence via the archiso `cow_label` overlay mechanism. A
+partition labeled `LUCY_PERSIST` (ext4) is used as a copy-on-write store for
+the whole root filesystem.
+
+- Build host: `sudo ./scripts/build-iso.sh --usb /dev/sdX` (writes the ISO,
+  then creates the `LUCY_PERSIST` partition in the trailing free space)
+- Live system: `sudo lucy-usb-persist` (auto-detects the boot medium)
+- Boot entries: `syslinux.cfg` (`LABEL persistent`) and
+  `efiboot/loader/entries/lucy-persistent-x86_64.conf` pass
+  `cow_label=LUCY_PERSIST cow_persistent=P`
+
 ### Modifying Archiso Profile
 
 1. Edit `src/configs/profiledef.sh` for metadata
