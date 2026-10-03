@@ -140,7 +140,15 @@ jobs:
 
     - name: Build ISO (Docker)
       run: |
-        ./scripts/build-docker.sh
+        set +e
+        ./scripts/build-docker.sh > /tmp/lucy-docker.log 2>&1
+        rc=$?
+        echo "::error::DOCKER_EXIT=$rc"
+        echo "::error::DOCKER_ERRORS=[$(grep -iE 'error|failed|not found|unable|cannot|invalid|target not found|no package' /tmp/lucy-docker.log | head -20 | tr '\n' ' ' | cut -c1-3000)]"
+        echo "::error::DOCKER_TAIL=[$(tail -20 /tmp/lucy-docker.log | tr '\n' ' ' | cut -c1-2000)]"
+        if [ $rc -ne 0 ]; then
+          exit 1
+        fi
         echo "Verifying ISO output..."
         ls -lh dist/*.iso
         ISO_SIZE=$(stat -c%s dist/*.iso)
