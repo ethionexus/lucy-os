@@ -14,6 +14,10 @@ bootmodes=('bios.syslinux.mbr' 'bios.syslinux.eltorito' 'uefi-x64.systemd.esp' '
 arch="x86_64"
 airootfs_image_type="squashfs"
 airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '1M' '-Xdict-size' '1M')
+# mkarchiso resolves these relative to the profile directory and
+# requires pacman_conf to be non-empty (it runs realpath on it).
+packages="packages.${arch}"
+pacman_conf="pacman.conf"
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/root"]="0:0:700"
