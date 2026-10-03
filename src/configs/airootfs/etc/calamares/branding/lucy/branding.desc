@@ -1,0 +1,40 @@
+---
+componentName: lucy
+
+welcomeStyleCalamares: false
+welcomeExpandingLogo: true
+
+windowExpanding: normal
+windowSize: 1024px,640px
+windowPlacement: center
+
+sidebar: widget
+navigation: widget
+
+strings:
+    productName: "Lucy OS"
+    shortProductName: LucyOS
+    version: "0.2.0"
+    shortVersion: "0.2.0"
+    versionedName: "Lucy OS 0.2.0"
+    shortVersionedName: LucyOS 0.2.0
+    bootloaderEntryName: LucyOS
+    productUrl: "https://github.com/ethionexus/lucy-os"
+    supportUrl: "https://github.com/ethionexus/lucy-os/issues"
+    knownIssuesUrl: "https://github.com/ethionexus/lucy-os/issues"
+    releaseNotesUrl: "https://github.com/ethionexus/lucy-os/releases"
+    donateUrl: ""
+
+images:
+    productIcon: "logo.png"
+    productLogo: "logo.png"
+    productWelcome: "welcome.png"
+
+slideshow: "show.qml"
+slideshowAPI: 2
+
+style:
+   sidebarBackground: "#141210"
+   sidebarText: "#F0E6D2"
+   sidebarTextSelect: "#141210"
+   sidebarTextHighlight: "#D4AF37"

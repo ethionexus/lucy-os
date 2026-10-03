@@ -50,6 +50,53 @@ fn execute_command(command: String) -> CommandResult {
     }
 }
 
+/// Launch a GUI application by its desktop-file name (without .conf) or by
+/// a raw command. Used by the dock and the app launcher.
+#[tauri::command]
+fn launch_app(target: String) -> CommandResult {
+    // Prefer the .desktop file so the app starts with its proper
+    // environment; fall back to running the target directly.
+    let desktop = format!("/usr/share/applications/{}.desktop", target);
+    let program = if std::path::Path::new(&desktop).exists() {
+        format!("gtk-launch {}", target)
+    } else {
+        target.clone()
+    };
+    execute_command(program)
+}
+
+/// Perform a system action from the Control Center / top bar. The action is
+/// mapped to a privileged system command. Privilege escalation is handled by
+/// the polkit rule installed in the airootfs.
+#[tauri::command]
+fn system_action(action: String) -> CommandResult {
+    let cmd = match action.as_str() {
+        "wifi-toggle" => "nmcli radio wifi toggle",
+        "wifi-status" => "nmcli radio wifi",
+        "bluetooth-toggle" => "bluetoothctl power toggle",
+        "bluetooth-status" => "bluetoothctl show | grep -i 'powered:'",
+        "audio-toggle-mute" => "pactl set-sink-mute @DEFAULT_SINK@ toggle",
+        "audio-volume-up" => "pactl set-sink-volume @DEFAULT_SINK@ +5%",
+        "audio-volume-down" => "pactl set-sink-volume @DEFAULT_SINK@ -5%",
+        "audio-status" => "pactl get-sink-mute @DEFAULT_SINK@",
+        "vpn-start" => "systemctl start sing-box",
+        "vpn-stop" => "systemctl stop sing-box",
+        "vpn-status" => "systemctl is-active sing-box",
+        "wallpaper-live" => "mkdir -p \"${XDG_CONFIG_HOME:-$HOME/.config}/lucy\" && echo /usr/share/lucy/lucy-wallpaper-live.mp4 > \"${XDG_CONFIG_HOME:-$HOME/.config}/lucy/wallpaper\" && pkill -f lucy-wallpaper; sleep 1; nohup lucy-wallpaper >/dev/null 2>&1 &",
+        "wallpaper-launch" => "mkdir -p \"${XDG_CONFIG_HOME:-$HOME/.config}/lucy\" && echo /usr/share/lucy/lucy-launch.mp4 > \"${XDG_CONFIG_HOME:-$HOME/.config}/lucy/wallpaper\" && pkill -f lucy-wallpaper; sleep 1; nohup lucy-wallpaper >/dev/null 2>&1 &",
+        "wallpaper-static" => "pkill -f lucy-wallpaper",
+        _ => "",
+    };
+    if cmd.is_empty() {
+        return CommandResult {
+            success: false,
+            output: String::new(),
+            error: Some(format!("unknown action: {}", action)),
+        };
+    }
+    execute_command(cmd.to_string())
+}
+
 #[tauri::command]
 fn get_system_info() -> SystemInfo {
     let mut sys = System::new_all();
@@ -92,6 +139,8 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             execute_command,
+            launch_app,
+            system_action,
             get_system_info,
             get_logs,
             agent_status

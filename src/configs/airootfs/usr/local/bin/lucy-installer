@@ -1,0 +1,24 @@
+#!/bin/bash
+# Lucy OS installer launcher.
+#
+# Starts Calamares (when installed from the AUR) and, once the install
+# finishes, plays lucy-launch.mp4 as the smooth final transition into the
+# home screen before revealing the desktop.
+
+set -uo pipefail
+
+if command -v calamares >/dev/null 2>&1; then
+    pkexec /usr/bin/calamares "$@"
+    status=$?
+else
+    echo "lucy-installer: Calamares is not installed." >&2
+    echo "Install it from the AUR (yay -S calamares) to use the graphical installer." >&2
+    exit 1
+fi
+
+# Post-installer transition: full-screen launch animation into the desktop.
+if [ "$status" -eq 0 ] && [ -x /usr/local/bin/lucy-launch ]; then
+    /usr/local/bin/lucy-launch
+fi
+
+exit "$status"

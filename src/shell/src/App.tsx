@@ -5,6 +5,11 @@ import SystemMonitor from "./components/SystemMonitor";
 import LogViewer from "./components/LogViewer";
 import Splash from "./components/Splash";
 import Welcome from "./components/Welcome";
+import Dock from "./components/Dock";
+import TopBar from "./components/TopBar";
+import ControlCenter from "./components/ControlCenter";
+import Flow from "./components/Flow";
+import "./shell.css";
 
 interface SystemInfo {
   cpu_usage: number;
@@ -18,8 +23,9 @@ interface SystemInfo {
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [controlCenter, setControlCenter] = useState(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
-  const [activeTab, setActiveTab] = useState<"chat" | "monitor" | "logs">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "monitor" | "logs" | "flow">("chat");
 
   // Play the lucy-intro welcome experience on first launch. The flag is
   // kept in the webview's localStorage, so it persists across app restarts
@@ -55,10 +61,20 @@ function App() {
       {!showSplash && showWelcome && (
         <Welcome onComplete={() => setShowWelcome(false)} />
       )}
+
+      <TopBar onToggleControlCenter={() => setControlCenter((v) => !v)} />
+
       <div className="app">
-        <header className="header">
-          <h1>Lucy OS</h1>
-          <nav className="nav">
+        <main className="main">
+          {activeTab === "chat" && <Chat />}
+          {activeTab === "monitor" && systemInfo && (
+            <SystemMonitor info={systemInfo} />
+          )}
+          {activeTab === "logs" && <LogViewer />}
+          {activeTab === "flow" && <Flow />}
+        </main>
+
+        <nav className="app-nav">
           <button
             className={activeTab === "chat" ? "active" : ""}
             onClick={() => setActiveTab("chat")}
@@ -77,70 +93,17 @@ function App() {
           >
             Logs
           </button>
+          <button
+            className={activeTab === "flow" ? "active" : ""}
+            onClick={() => setActiveTab("flow")}
+          >
+            Flow
+          </button>
         </nav>
-      </header>
+      </div>
 
-      <main className="main">
-        {activeTab === "chat" && <Chat />}
-        {activeTab === "monitor" && systemInfo && (
-          <SystemMonitor info={systemInfo} />
-        )}
-        {activeTab === "logs" && <LogViewer />}
-      </main>
-
-      <style>{`
-        .app {
-          display: flex;
-          flex-direction: column;
-          height: 100vh;
-          background: #1a1a1a;
-          color: #e0e0e0;
-        }
-
-        .header {
-          padding: 1rem 2rem;
-          background: #2d2d2d;
-          border-bottom: 1px solid #3d3d3d;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .header h1 {
-          margin: 0;
-          font-size: 1.5rem;
-        }
-
-        .nav {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .nav button {
-          padding: 0.5rem 1rem;
-          background: #3d3d3d;
-          border: none;
-          border-radius: 4px;
-          color: #e0e0e0;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-
-        .nav button:hover {
-          background: #4d4d4d;
-        }
-
-        .nav button.active {
-          background: #6366f1;
-        }
-
-        .main {
-          flex: 1;
-          overflow: auto;
-          padding: 1rem;
-        }
-      `}</style>
-    </div>
+      <Dock />
+      <ControlCenter open={controlCenter} onClose={() => setControlCenter(false)} />
     </>
   );
 }

@@ -1,0 +1,17 @@
+# Lucy OS Openbox autostart — launches the desktop stack in order.
+#
+# 1. Static wallpaper is set by lxde-rc.xml (<wallpaper>).
+# 2. lucy-launch plays the 10s full-screen boot animation (covers loading).
+# 3. lucy-wallpaper starts the live video background underneath.
+# 4. XDG autostart entries (wallpaper service, installer prompt) run via
+#    lxsession as usual.
+
+# Live video wallpaper (no-op when the video asset is absent).
+/usr/local/bin/lucy-wallpaper &
+
+# Launch animation on login (plays once, then exits).
+/usr/local/bin/lucy-launch &
+
+# Compositor for smooth 60fps glassmorphic transparency.
+# picom is optional — only started when installed.
+command -v picom >/dev/null 2>&1 && picom -b --backend glx --vsync &

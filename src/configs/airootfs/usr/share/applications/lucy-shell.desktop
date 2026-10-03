@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Lucy Hub
+Comment=Lucy OS AI Assistant and agent management
+Exec=/usr/local/bin/lucy-shell
+Icon=lucy
+Categories=Utility;AI;
+Keywords=ai;assistant;agent;lucy;

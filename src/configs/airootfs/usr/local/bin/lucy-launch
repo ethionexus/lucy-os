@@ -1,0 +1,36 @@
+#!/bin/bash
+# Lucy OS launch animation.
+#
+# Plays lucy-launch.mp4 full-screen on every login, covering the desktop
+# while it loads. When the video ends the desktop is revealed, giving a
+# smooth boot/login transition into the shell.
+
+set -uo pipefail
+
+VIDEO="/usr/share/lucy/lucy-launch.mp4"
+PIDFILE="/tmp/lucy-launch-${UID}.pid"
+
+# Guard against a second instance.
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    exit 0
+fi
+
+: "${DISPLAY:=:0}"
+export DISPLAY
+
+if [ ! -f "$VIDEO" ]; then
+    exit 0
+fi
+
+command -v mpv >/dev/null 2>&1 || exit 0
+
+# Play the launch animation full-screen (muted, no OSD, no input). The
+# desktop loads behind it; when the video ends the shell is revealed.
+exec mpv \
+    --fs \
+    --no-audio \
+    --no-osc \
+    --no-osd-bar \
+    --no-input-default-bindings \
+    --no-config \
+    "$VIDEO"

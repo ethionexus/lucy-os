@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Lucy OS Launch Animation
+Comment=Play the Lucy OS launch animation full-screen on login
+Exec=/usr/local/bin/lucy-launch
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=2
+NoDisplay=true

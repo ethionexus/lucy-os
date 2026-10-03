@@ -63,6 +63,25 @@ xorg-xprop
 # USB persistence (partitioning for live USB cow store)
 parted
 
+# Essential app suite (out-of-the-box productivity)
+chromium
+alacritty
+thunar
+thunar-archive-plugin
+thunar-media-tags-plugin
+thunar-volman
+gvfs
+gvfs-mtp
+tumbler
+ffmpegthumbnailer
+
+# Bluetooth (Control Center toggle)
+bluez
+bluez-utils
+
+# VPN / proxy engine (sing-box, Clash API for the GUI widget)
+sing-box
+
 # Boot loader
 syslinux
 mtools

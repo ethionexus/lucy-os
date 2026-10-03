@@ -1,0 +1,17 @@
+#!/bin/bash
+# Lucy Hub — launch the Lucy OS shell (the Tauri desktop app).
+#
+# The shell is bundled into /opt/lucy-shell by the ISO build. This wrapper
+# locates the binary and execs it so the dock / desktop entry can use a
+# stable name.
+
+set -uo pipefail
+
+for bin in /opt/lucy-shell/linux/lucy-shell /opt/lucy-shell/lucy-shell; do
+    if [ -x "$bin" ]; then
+        exec "$bin" "$@"
+    fi
+done
+
+echo "lucy-shell: Tauri app binary not found in /opt/lucy-shell" >&2
+exit 1

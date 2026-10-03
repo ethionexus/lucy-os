@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Install Lucy OS
+Comment=Install Lucy OS to your hard drive
+Exec=/usr/local/bin/lucy-installer
+Icon=lucy
+Terminal=false
+Categories=System;

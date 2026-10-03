@@ -1,18 +1,43 @@
 #!/bin/bash
 # Lucy OS Live Wallpaper Engine (X11)
 #
-# Loops lucy-wallpaper-live.mp4 as the desktop background. The engine
-# prefers xwinwrap (override-redirect => the video sits cleanly beneath
-# the desktop icons and panels). When xwinwrap is not installed it falls
-# back to mpv rendered inside a _NET_WM_WINDOW_TYPE_DESKTOP window, and
-# finally to the static wallpaper shipped with Openbox.
+# Loops a video as the desktop background. The engine prefers xwinwrap
+# (override-redirect => the video sits cleanly beneath the desktop icons
+# and panels). When xwinwrap is not installed it falls back to mpv rendered
+# inside a _NET_WM_WINDOW_TYPE_DESKTOP window, and finally to the static
+# wallpaper shipped with Openbox.
+#
+# The video is selected via (in priority order):
+#   1. $LUCY_WALLPAPER environment variable (a video path)
+#   2. ~/.config/lucy/wallpaper (a video path, written by the Control Center)
+#   3. the default /usr/share/lucy/lucy-wallpaper-live.mp4
 
 set -uo pipefail
 
-VIDEO="/usr/share/lucy/lucy-wallpaper-live.mp4"
+DEFAULT_VIDEO="/usr/share/lucy/lucy-wallpaper-live.mp4"
 PIDFILE="/tmp/lucy-wallpaper-${UID}.pid"
 
 log() { echo "lucy-wallpaper: $*"; }
+
+# Resolve which video to play.
+resolve_video() {
+    if [ -n "${LUCY_WALLPAPER:-}" ] && [ -f "${LUCY_WALLPAPER}" ]; then
+        printf '%s\n' "${LUCY_WALLPAPER}"
+        return
+    fi
+    local conf="${XDG_CONFIG_HOME:-$HOME/.config}/lucy/wallpaper"
+    if [ -f "$conf" ]; then
+        local sel
+        sel=$(head -n1 "$conf" 2>/dev/null | tr -d '[:space:]')
+        if [ -n "$sel" ] && [ -f "$sel" ]; then
+            printf '%s\n' "$sel"
+            return
+        fi
+    fi
+    printf '%s\n' "$DEFAULT_VIDEO"
+}
+
+VIDEO="$(resolve_video)"
 
 # Guard against a second instance.
 if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
@@ -28,8 +53,8 @@ if [ -n "${WAYLAND_DISPLAY:-}" ]; then
     exit 0
 fi
 
-# The live video asset must be present; otherwise the static
-# wallpaper configured in Openbox (lxde-rc.xml) remains in effect.
+# The selected video must be present; otherwise the static wallpaper
+# configured in Openbox (lxde-rc.xml) remains in effect.
 if [ ! -f "$VIDEO" ]; then
     log "live video not found ($VIDEO); using static wallpaper"
     exit 0
@@ -42,7 +67,7 @@ command -v mpv >/dev/null 2>&1 || {
 
 # --- Method 1: xwinwrap + mpv (clean, override-redirect background) -------
 if command -v xwinwrap >/dev/null 2>&1; then
-    log "starting live wallpaper via xwinwrap on $DISPLAY"
+    log "starting live wallpaper via xwinwrap ($VIDEO) on $DISPLAY"
     # xwinwrap creates an override-redirect, fullscreen, below window and
     # substitutes the literal WID with that window's X id before exec'ing
     # mpv, which then renders the looping video into it.
@@ -58,7 +83,7 @@ if command -v xwinwrap >/dev/null 2>&1; then
 fi
 
 # --- Method 2: mpv + _NET_WM_WINDOW_TYPE_DESKTOP (in-repo fallback) -------
-log "xwinwrap not found; using mpv desktop-window fallback"
+log "xwinwrap not found; using mpv desktop-window fallback ($VIDEO)"
 mpv \
     --geometry=100%x100%+0+0 \
     --no-ontop \

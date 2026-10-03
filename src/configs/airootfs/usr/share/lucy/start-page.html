@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lucy OS — Start</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: system-ui, sans-serif;
+    background: radial-gradient(ellipse at 50% 35%, #1c1712 0%, #0b0a08 70%);
+    color: #f0e6d2;
+  }
+  h1 {
+    font-size: 3rem;
+    background: linear-gradient(135deg, #f7e8c3, #d4af37);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  p { opacity: 0.65; margin: 0.5rem 0 2rem; }
+  form { display: flex; gap: 8px; width: min(520px, 90vw); }
+  input {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    border-radius: 999px;
+    border: 1px solid rgba(212,175,55,0.35);
+    background: rgba(255,255,255,0.06);
+    color: #f0e6d2;
+    font-size: 1rem;
+  }
+  button {
+    padding: 0.7rem 1.4rem;
+    border-radius: 999px;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.18);
+    color: #f7e8c3;
+    cursor: pointer;
+  }
+  .links { display: flex; gap: 1rem; margin-top: 2rem; }
+  .links a { color: #d4af37; text-decoration: none; opacity: 0.8; }
+  .links a:hover { opacity: 1; }
+</style>
+</head>
+<body>
+  <h1>Lucy OS</h1>
+  <p>Rooted in Origins, Powered by AI — ድንቅነሽ</p>
+  <form id="s">
+    <input id="q" type="text" placeholder="Search the web…" autofocus>
+    <button type="submit">Search</button>
+  </form>
+  <div class="links">
+    <a href="https://duckduckgo.com">DuckDuckGo</a>
+    <a href="https://wikipedia.org">Wikipedia</a>
+    <a href="https://archlinux.org">Arch Linux</a>
+  </div>
+  <script>
+    document.getElementById('s').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var q = document.getElementById('q').value.trim();
+      if (q) location.href = 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
+    });
+  </script>
+</body>
+</html>
