@@ -29,20 +29,19 @@ RUN pacman -S --noconfirm --needed \
     squashfs-tools \
     libisoburn \
     xorriso \
-    webkit2gtk \
     gtk3 \
     librsvg \
-    soup3 \
     patchelf \
     openssl
 
-# AppIndicator (system tray support for the desktop UI).
-# libayatana-appindicator is AUR-only on Arch Linux and fails to
-# resolve in the official repos, so use the official equivalent
-# libappindicator-gtk3. Treat it as optional: the ISO build must
-# continue even when the package is unavailable.
-RUN pacman -S --noconfirm --needed libappindicator-gtk3 || \
-    echo "libappindicator-gtk3 unavailable; continuing without AppIndicator"
+# Optional dependencies that are not present in every mirror
+# snapshot (pacman reports "target not found" for webkit2gtk,
+# soup3, and the AppIndicator library). Install each one
+# best-effort so the ISO build continues without them.
+RUN for pkg in webkit2gtk soup3 libappindicator-gtk3; do \
+        pacman -S --noconfirm --needed "$pkg" || \
+            echo "warning: $pkg unavailable; continuing"; \
+    done
 
 # Arch Linux enforces PEP 668 (externally managed environment).
 # Allow pip installs into the system Python inside this build container.
