@@ -113,23 +113,32 @@ jobs:
           exit 1
         fi
 
-    - name: Build ISO (Simulated)
-      run: |
-        echo "Building ISO..."
-        echo "Note: Full archiso build requires native Arch Linux"
-        echo "This workflow validates the build process"
-        echo "For complete ISO build, use Docker or native Arch Linux"
+    - name: Check available disk space
+      run: df -h /
 
-        # Create a placeholder ISO for artifact testing
-        echo "Creating placeholder ISO for testing..."
-        mkdir -p dist
-        echo "Lucy OS v0.1.0 Placeholder" > dist/lucy-os-0.1.0-x86_64-placeholder.txt
+    - name: Free disk space for ISO build
+      run: |
+        # The archiso build needs significant disk space (~25GB).
+        # Clean up runner images and package caches to make room.
+        docker system prune -f || true
+        docker image prune -a -f || true
+        sudo apt-get clean || true
+        df -h /
+
+    - name: Build ISO (Docker)
+      run: |
+        ./scripts/build-docker.sh
+        echo "Verifying ISO output..."
+        ls -lh dist/*.iso
+        ISO_SIZE=$(stat -c%s dist/*.iso)
+        echo "Built ISO size: $ISO_SIZE bytes"
 
     - name: Upload ISO artifact
       uses: actions/upload-artifact@v4
       with:
         name: lucy-os-build-artifacts
-        path: dist/
+        path: dist/*.iso
+        if-no-files-found: error
         retention-days: 30
 
     - name: Build summary
@@ -138,8 +147,7 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "- Core Agent: Built successfully" >> $GITHUB_STEP_SUMMARY
         echo "- Desktop UI: Built successfully" >> $GITHUB_STEP_SUMMARY
-        echo "- ISO: Validated (requires native Arch Linux for full build)" >> $GITHUB_STEP_SUMMARY
+        echo "- ISO: Built in Arch Linux Docker container" >> $GITHUB_STEP_SUMMARY
+        echo "- Artifact: lucy-os-build-artifacts (dist/*.iso)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "For complete ISO build, use:" >> $GITHUB_STEP_SUMMARY
-        echo "- Docker: \`./scripts/build-docker.sh\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Native Arch Linux: Run in Arch Linux environment" >> $GITHUB_STEP_SUMMARY
+        echo "Download the ISO from the workflow run artifacts." >> $GITHUB_STEP_SUMMARY
