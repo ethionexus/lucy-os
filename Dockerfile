@@ -29,6 +29,7 @@ RUN pacman -S --noconfirm --needed \
     squashfs-tools \
     libisoburn \
     xorriso \
+    mtools \
     gtk3 \
     librsvg \
     patchelf \

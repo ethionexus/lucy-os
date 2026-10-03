@@ -58,8 +58,11 @@ lxterminal
 pcmanfm
 obconf
 
+# Boot loader
+syslinux
+mtools
+
 # Tauri dependencies
-webkit2gtk
 gtk3
 gdk-pixbuf2
 librsvg
