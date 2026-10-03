@@ -1,5 +1,5 @@
 # Rust
-/target/
+target/
 **/*.rs.bk
 Cargo.lock
 
@@ -39,8 +39,9 @@ dist-ssr/
 *.local
 
 # Tauri
-src-tauri/target/
+target/
 src-tauri/Cargo.lock
+gen/
 
 # Build artifacts
 *.iso

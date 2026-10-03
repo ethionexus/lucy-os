@@ -73,10 +73,14 @@ mkarchiso -v -w "$WORK_DIR" -o "$DIST_DIR" "$CONFIGS_DIR"
 
 # Step 5: Cleanup
 echo "Step 5: Cleaning up..."
-read -p "Clean work directory? (y/N) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    rm -rf "$WORK_DIR"
+if [ -t 0 ]; then
+    read -p "Clean work directory? (y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        rm -rf "$WORK_DIR"
+    fi
+else
+    echo "Non-interactive mode: keeping work directory for inspection"
 fi
 
 echo "ISO build complete!"

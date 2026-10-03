@@ -10,15 +10,15 @@ requires-python = ">=3.8"
 dependencies = [
     "pydantic>=2.0",
     "openai>=1.0",
-    "python-systemd>=235",
     "ollama>=0.1.0",
     "requests>=2.31.0",
 ]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
-python-source = "python"
+python-source = "."
 module-name = "lucy_core.lucy_core"
+python-packages = ["lucy_agent"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

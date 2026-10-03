@@ -4,7 +4,7 @@ use tracing_appender::rolling;
 
 /// Initialize structured logging with rotation
 #[pyfunction]
-fn init_logging(log_dir: Option<String>) -> PyResult<()> {
+pub fn init_logging(log_dir: Option<String>) -> PyResult<()> {
     let log_path = log_dir.unwrap_or_else(|| "/var/log/lucy".to_string());
 
     let file_appender = rolling::daily(&log_path, "lucy.log");

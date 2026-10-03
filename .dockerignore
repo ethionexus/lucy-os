@@ -1,10 +1,13 @@
+# Keep the Docker build context small and reproducible
+
 # Git
 .git
 .gitignore
+.github
 
 # Build artifacts
-target/
-dist/
+**/target/
+**/dist/
 work/
 *.iso
 *.tar.zst
@@ -34,7 +37,7 @@ venv/
 env/
 
 # Node
-node_modules/
+**/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

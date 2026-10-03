@@ -1,7 +1,9 @@
 FROM archlinux/archlinux:latest
 
-# Install base system
-RUN pacman -Syu --noconfirm
+# Refresh keyring first to avoid database synchronization failures,
+# then upgrade the system
+RUN pacman -Syu --noconfirm --needed archlinux-keyring && \
+    pacman -Syu --noconfirm
 
 # Install build dependencies
 RUN pacman -S --noconfirm --needed \
@@ -23,10 +25,22 @@ RUN pacman -S --noconfirm --needed \
     e2fsprogs \
     squashfs-tools \
     libisoburn \
-    xorriso
+    xorriso \
+    webkit2gtk \
+    gtk3 \
+    libayatana-appindicator \
+    librsvg \
+    soup3 \
+    patchelf \
+    openssl
+
+# Arch Linux enforces PEP 668 (externally managed environment).
+# Allow pip installs into the system Python inside this build container.
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_ROOT_USER_ACTION=ignore
 
 # Install Python packages
-RUN pip install maturin requests pydantic openai ollama
+RUN pip install requests pydantic openai ollama
 
 # Set working directory
 WORKDIR /build

@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 use serde::Serialize;
-use sysinfo::{System, SystemExt, CpuExt, DiskExt, ProcessExt};
+use sysinfo::{System, Disks};
 use std::fs;
 use std::path::Path;
 
@@ -58,13 +58,14 @@ impl SystemMonitor {
 
     /// Get current system information
     fn get_info(&self) -> SystemInfo {
-        let cpu_usage = self.system.global_cpu_usage();
+        let cpu_usage = self.system.global_cpu_info().cpu_usage();
         let total_memory = self.system.total_memory();
         let used_memory = self.system.used_memory();
         let process_count = self.system.processes().len();
 
-        let total_disk = self.system.disks().iter().map(|d| d.total_space()).sum();
-        let used_disk = self.system.disks().iter().map(|d| d.available_space()).sum();
+        let disks = Disks::new_with_refreshed_list();
+        let total_disk: u64 = disks.list().iter().map(|d| d.total_space()).sum();
+        let used_disk: u64 = disks.list().iter().map(|d| d.available_space()).sum();
 
         SystemInfo {
             cpu_usage,
@@ -78,7 +79,7 @@ impl SystemMonitor {
 
     /// Get CPU usage percentage
     fn get_cpu_usage(&self) -> f32 {
-        self.system.global_cpu_usage()
+        self.system.global_cpu_info().cpu_usage()
     }
 
     /// Get memory usage in bytes
@@ -88,8 +89,9 @@ impl SystemMonitor {
 
     /// Get disk usage in bytes
     fn get_disk_usage(&self) -> (u64, u64) {
-        let total: u64 = self.system.disks().iter().map(|d| d.total_space()).sum();
-        let available: u64 = self.system.disks().iter().map(|d| d.available_space()).sum();
+        let disks = Disks::new_with_refreshed_list();
+        let total: u64 = disks.list().iter().map(|d| d.total_space()).sum();
+        let available: u64 = disks.list().iter().map(|d| d.available_space()).sum();
         (total - available, total)
     }
 

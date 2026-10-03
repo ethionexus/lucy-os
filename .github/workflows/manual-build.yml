@@ -21,11 +21,19 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Set up environment
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3 python3-pip nodejs npm git
-        
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
     - name: Install dependencies
       run: |
         pip install maturin requests pydantic openai psutil
