@@ -37,7 +37,6 @@ maturin
 # AI/ML dependencies
 python-pydantic
 python-openai
-ollama
 
 # Display server
 xorg-server
@@ -69,7 +68,6 @@ librsvg
 
 # System monitoring
 htop
-neofetch
 sysstat
 iotop
 
