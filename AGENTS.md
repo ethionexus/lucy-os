@@ -376,6 +376,52 @@ the whole root filesystem.
   `efiboot/loader/entries/lucy-persistent-x86_64.conf` pass
   `cow_label=LUCY_PERSIST cow_persistent=P`
 
+### v0.2.0 Glassmorphic Shell, Apps, VPN
+
+#### Launch animation (lucy-launch.mp4)
+
+10-second full-screen boot/login animation. Single source of truth is
+`src/shell/public/media/lucy-launch.mp4`; `build-iso.sh` Step 3 syncs it
+into `airootfs/usr/share/lucy/lucy-launch.mp4` (the airootfs copy is NOT
+committed, to avoid duplicating the 24 MB blob).
+
+- Player: `airootfs/usr/local/bin/lucy-launch` (mpv fullscreen)
+- Autostart: `airootfs/etc/xdg/autostart/lucy-launch.desktop`
+- Post-installer transition: `airootfs/usr/local/bin/lucy-installer`
+  launches Calamares, then plays the animation into the desktop
+- Also selectable as a live wallpaper in the Control Center
+
+#### Glassmorphic shell (Dock, TopBar, Control Center, Flow)
+
+- `src/shell/src/components/Dock.tsx` — bottom floating dock (browser,
+  files, terminal, media, hub, settings)
+- `src/shell/src/components/TopBar.tsx` — top status bar with clock and
+  Wi-Fi/Bluetooth/Audio/VPN toggles
+- `src/shell/src/components/ControlCenter.tsx` — quick toggles, wallpaper
+  switcher (live / launch / static), theme picker
+- `src/shell/src/components/Flow.tsx` — Lucy Flow automation hub
+  (one-click offline tasks via the `execute_command` Tauri backend)
+- `src/shell/src/shell.css` — glassmorphic styles (blur backdrops,
+  obsidian + gold)
+- Backend: `launch_app` + `system_action` Tauri commands in
+  `src-tauri/src/lib.rs`
+
+#### App suite and VPN
+
+Packages in `src/configs/packages.x86_64`: `chromium`, `alacritty`,
+`thunar` (+ plugins, `gvfs`, `tumbler`), `mpv`, `bluez`, `sing-box`,
+`parted`, `xdotool`, `xorg-xprop`.
+
+- `sing-box` VPN engine with China-friendly routing + Clash API
+  (`airootfs/etc/sing-box/config.json`); toggle via TopBar/Control Center
+- Lucy dark start page: `airootfs/usr/share/lucy/start-page.html`
+- Lucy Hub launcher: `airootfs/usr/local/bin/lucy-shell` +
+  `lucy-shell.desktop`
+- Performance: `airootfs/etc/sysctl.d/99-lucy-performance.conf`
+- Calamares branding (Dinknesh slideshow): `airootfs/etc/calamares/`
+  (the `calamares` package itself is AUR-only, so it is NOT in
+  `packages.x86_64`; install from AUR to enable the graphical installer)
+
 ### Modifying Archiso Profile
 
 1. Edit `src/configs/profiledef.sh` for metadata
