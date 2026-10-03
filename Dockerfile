@@ -5,6 +5,9 @@ FROM archlinux/archlinux:latest
 RUN pacman -Syu --noconfirm --needed archlinux-keyring && \
     pacman -Syu --noconfirm
 
+# Sync the repo databases so package resolution is up to date
+RUN pacman -Sy --noconfirm
+
 # Install build dependencies
 RUN pacman -S --noconfirm --needed \
     base-devel \
@@ -28,11 +31,18 @@ RUN pacman -S --noconfirm --needed \
     xorriso \
     webkit2gtk \
     gtk3 \
-    libayatana-appindicator \
     librsvg \
     soup3 \
     patchelf \
     openssl
+
+# AppIndicator (system tray support for the desktop UI).
+# libayatana-appindicator is AUR-only on Arch Linux and fails to
+# resolve in the official repos, so use the official equivalent
+# libappindicator-gtk3. Treat it as optional: the ISO build must
+# continue even when the package is unavailable.
+RUN pacman -S --noconfirm --needed libappindicator-gtk3 || \
+    echo "libappindicator-gtk3 unavailable; continuing without AppIndicator"
 
 # Arch Linux enforces PEP 668 (externally managed environment).
 # Allow pip installs into the system Python inside this build container.
