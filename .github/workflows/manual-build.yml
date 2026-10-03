@@ -1,0 +1,73 @@
+name: Manual ISO Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: 'Build mode'
+        required: false
+        default: 'validate'
+        type: choice
+        options:
+          - validate
+          - build-docker
+          - build-native
+
+jobs:
+  manual-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3 python3-pip nodejs npm git
+        
+    - name: Install dependencies
+      run: |
+        pip install maturin requests pydantic openai psutil
+        
+    - name: Validate build configuration
+      run: |
+        echo "Validating build configuration..."
+        if [ -f "src/configs/profiledef.sh" ]; then
+          echo "✓ Profile definition found"
+        else
+          echo "✗ Profile definition not found"
+          exit 1
+        fi
+        
+        if [ -f "src/configs/packages.x86_64" ]; then
+          echo "✓ Package list found"
+          echo "Packages: $(wc -l < src/configs/packages.x86_64)"
+        else
+          echo "✗ Package list not found"
+          exit 1
+        fi
+        
+        if [ -f "scripts/build-core.sh" ]; then
+          echo "✓ Core build script found"
+        else
+          echo "✗ Core build script not found"
+          exit 1
+        fi
+        
+        if [ -f "scripts/build-shell.sh" ]; then
+          echo "✓ Shell build script found"
+        else
+          echo "✗ Shell build script not found"
+          exit 1
+        fi
+        
+        if [ -f "scripts/build-iso.sh" ]; then
+          echo "✓ ISO build script found"
+        else
+          echo "✗ ISO build script not found"
+          exit 1
+        fi
+        
+        echo ""
+        echo "Build configuration validation passed!"

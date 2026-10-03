@@ -52,14 +52,23 @@ npm run tauri build --target x86_64-unknown-linux-gnu
 ### Complete ISO
 
 ```bash
-# Build entire ISO (requires root)
+# Build entire ISO (requires root and Arch Linux)
 sudo ./scripts/build-iso.sh
 ```
 
 **Prerequisites:**
+- Arch Linux environment
 - archiso installed
 - Root privileges
 - ~25GB free disk space (increased due to Ollama)
+
+**Alternative: Docker Build**
+```bash
+./scripts/build-docker.sh
+```
+
+**Alternative: GitHub Actions**
+Push to GitHub to trigger automated builds.
 
 ### WSL Setup
 
@@ -262,6 +271,48 @@ sudo ./scripts/build-iso.sh
    # Should find the package
    ```
 
+### Docker Build Verification
+
+1. **Check Docker availability:**
+   ```bash
+   docker --version
+   docker info
+   ```
+
+2. **Validate build environment:**
+   ```bash
+   ./scripts/validate-build.sh
+   ```
+
+3. **Build Docker image:**
+   ```bash
+   docker build -t lucy-os-builder .
+   ```
+
+4. **Test Docker build:**
+   ```bash
+   ./scripts/build-docker.sh
+   ```
+
+5. **Verify ISO output:**
+   ```bash
+   ls -lh dist/*.iso
+   ```
+
+### Environment Validation
+
+Before building, validate your environment:
+```bash
+./scripts/validate-build.sh
+```
+
+This checks:
+- Arch Linux environment
+- Required tools (archiso, Rust, Python, Node.js)
+- Project files
+- Disk space
+- Docker availability (as alternative)
+
 ## Development Workflow
 
 ### Adding New Commands
@@ -435,6 +486,27 @@ sudo ./scripts/build-iso.sh
 **ISO build out of space:**
 ```bash
 rm -rf work/
+```
+
+**Not running in Arch Linux:**
+```bash
+# Use Docker instead
+./scripts/build-docker.sh
+
+# Or install Arch Linux WSL2
+# See docs/wsl-build-guide.md
+```
+
+**Docker not available:**
+```bash
+# Install Docker from https://docs.docker.com/get-docker/
+# Or use GitHub Actions for automated builds
+```
+
+**archiso not found in WSL2:**
+```bash
+# WSL2 archiso may have limitations
+# Use Docker build instead: ./scripts/build-docker.sh
 ```
 
 ### Getting Help

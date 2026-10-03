@@ -15,6 +15,29 @@ if ! grep -q Microsoft /proc/version; then
     fi
 fi
 
+# Check if running in Arch Linux
+if [ ! -f /etc/arch-release ]; then
+    echo "Error: This script requires Arch Linux WSL2"
+    echo ""
+    echo "To install Arch Linux WSL2:"
+    echo "  Option 1 (Recommended):"
+    echo "    1. Open Microsoft Store"
+    echo "    2. Search for 'Arch Linux'"
+    echo "    3. Click 'Get' or 'Install'"
+    echo "    4. Launch from Start menu"
+    echo ""
+    echo "  Option 2 (Manual):"
+    echo "    wsl --install archlinux"
+    echo ""
+    echo "After installation, run this script again in Arch WSL2:"
+    echo "  wsl -d archlinux"
+    echo "  cd /path/to/lucy-os"
+    echo "  ./scripts/setup-wsl.sh"
+    exit 1
+fi
+
+echo "✓ Running in Arch Linux WSL2"
+
 # Update system
 echo "Updating system packages..."
 sudo pacman -Syu --noconfirm
@@ -41,7 +64,7 @@ fi
 
 # Install Python and pip
 echo "Installing Python and pip..."
-sudo pacman -S --noconfirm --needed python python-pip
+sudo pacman -S --noconfirm --needed python python-pip python-psutil
 
 # Install Node.js and npm
 echo "Installing Node.js and npm..."
@@ -79,3 +102,8 @@ echo "1. Navigate to project directory"
 echo "2. Run: ./scripts/build-core.sh"
 echo "3. Run: ./scripts/build-shell.sh"
 echo "4. Run: sudo ./scripts/build-iso.sh"
+echo ""
+echo "Note: If archiso has limitations in WSL2, consider using Docker:"
+echo "  ./scripts/build-docker.sh"
+echo ""
+echo "For detailed WSL2 build instructions, see: docs/wsl-build-guide.md"

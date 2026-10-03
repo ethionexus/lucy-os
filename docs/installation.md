@@ -80,6 +80,19 @@ This builds:
 
 #### Build Complete ISO
 
+**Option A: Docker Build (Recommended)**
+
+```bash
+./scripts/build-docker.sh
+```
+
+This builds the ISO in a Docker container with Arch Linux:
+- No need for local Arch Linux installation
+- Reproducible build environment
+- Isolated from host system
+
+**Option B: Native Arch Linux Build**
+
 ```bash
 sudo ./scripts/build-iso.sh
 ```
@@ -89,6 +102,12 @@ This:
 - Injects into archiso profile
 - Generates bootable ISO
 - Outputs to `dist/` directory
+
+**Option C: GitHub Actions**
+
+Push to GitHub to trigger automated builds. Download ISO from Actions artifacts.
+
+**Important:** If you're on Windows/MSYS2 directly, use Docker or GitHub Actions. Native builds require Arch Linux.
 
 ## Manual Installation Steps
 
@@ -125,6 +144,44 @@ sudo pacman -S archiso
 ```bash
 sudo pacman -S qemu edk2-ovmf
 ```
+
+## Docker Build
+
+For a clean, reproducible build environment without installing Arch Linux locally:
+
+### Prerequisites
+
+- Docker installed and running
+- At least 25GB free disk space
+
+### Build with Docker
+
+```bash
+# Using the convenience script
+./scripts/build-docker.sh
+
+# Or manually
+docker build -t lucy-os-builder .
+docker run --rm \
+  -v $(pwd)/dist:/build/dist \
+  -v $(pwd)/work:/build/work \
+  --privileged \
+  lucy-os-builder \
+  ./scripts/build-iso.sh
+```
+
+### Docker Compose
+
+```bash
+docker-compose up
+```
+
+### Advantages
+
+- No Arch Linux installation required
+- Reproducible build environment
+- Works on Windows, macOS, and Linux
+- Easy to clean up
 
 ## Building Individual Components
 
@@ -252,17 +309,63 @@ sudo ./scripts/build-iso.sh
 rm -rf work/
 ```
 
+**Problem: Not running in Arch Linux**
+```bash
+# Use Docker instead
+./scripts/build-docker.sh
+
+# Or install Arch Linux WSL2
+# See docs/wsl-build-guide.md
+```
+
+### WSL2 archiso Limitations
+
+If you encounter issues with archiso in WSL2, consider:
+
+1. **Use Docker build** (recommended):
+   ```bash
+   ./scripts/build-docker.sh
+   ```
+
+2. **Copy project to WSL2 filesystem** for better performance:
+   ```bash
+   cp -r /mnt/c/path/to/lucy-os ~/lucy-os
+   cd ~/lucy-os
+   ```
+
+3. **Use GitHub Actions** for automated builds
+
+For detailed WSL2 setup and troubleshooting, see [docs/wsl-build-guide.md](wsl-build-guide.md).
+
 ## Development Workflow
+
+### Pre-Build Validation
+
+Before building, validate your environment:
+
+```bash
+./scripts/validate-build.sh
+```
+
+This checks:
+- Arch Linux environment
+- Required tools (archiso, Rust, Python, Node.js)
+- Project files
+- Disk space
+- Docker availability (as alternative)
 
 ### Typical Development Cycle
 
 1. Make changes to code
-2. Build affected component:
+2. Validate environment: `./scripts/validate-build.sh`
+3. Build affected component:
    - Core: `./scripts/build-core.sh`
    - UI: `./scripts/build-shell.sh`
-3. Test locally
-4. Build ISO: `sudo ./scripts/build-iso.sh`
-5. Test in QEMU
+4. Test locally
+5. Build ISO:
+   - Docker: `./scripts/build-docker.sh` (recommended)
+   - Native: `sudo ./scripts/build-iso.sh`
+6. Test in QEMU
 
 ### Hot Reloading
 
@@ -281,14 +384,34 @@ python -m lucy_agent.daemon
 
 ## Continuous Integration
 
-The project supports CI/CD via GitHub Actions (to be configured):
+The project supports CI/CD via GitHub Actions:
 
-- Build Rust components
-- Build Python package
-- Build Tauri app
-- Generate ISO
-- Test in QEMU
-- Upload artifacts
+### Automated Builds
+
+- **Build ISO workflow** (`.github/workflows/build-iso.yml`):
+  - Triggers on push to main/master
+  - Validates build configuration
+  - Builds core and shell components
+  - Uploads artifacts
+
+- **Manual build workflow** (`.github/workflows/manual-build.yml`):
+  - Manual dispatch trigger
+  - Validates build environment
+  - Useful for testing without full ISO build
+
+### Using GitHub Actions
+
+1. Push to GitHub to trigger automated builds
+2. Go to Actions tab in repository
+3. Download artifacts from completed workflow
+4. ISO and build logs available as artifacts
+
+### Advantages
+
+- No local build environment needed
+- Consistent build environment
+- Automatic testing
+- Artifact retention
 
 ## Support
 

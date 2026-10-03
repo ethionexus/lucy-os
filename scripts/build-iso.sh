@@ -19,6 +19,21 @@ mkdir -p "$WORK_DIR"
 if [ "$EUID" -ne 0 ]; then
     echo "Error: This script must be run as root"
     echo "Please run: sudo $0"
+    echo ""
+    echo "Alternative: Use Docker build:"
+    echo "  ./scripts/build-docker.sh"
+    exit 1
+fi
+
+# Check if running in Arch Linux
+if [ ! -f /etc/arch-release ]; then
+    echo "Error: This script must be run in Arch Linux"
+    echo "Current OS: $(uname -s)"
+    echo ""
+    echo "Alternative build methods:"
+    echo "  Docker: ./scripts/build-docker.sh"
+    echo "  GitHub Actions: Push to trigger workflow"
+    echo "  WSL2: See docs/wsl-build-guide.md"
     exit 1
 fi
 

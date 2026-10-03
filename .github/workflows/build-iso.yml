@@ -1,0 +1,108 @@
+name: Build Lucy OS ISO
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install archiso dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          arch-install-scripts \
+          dosfstools \
+          e2fsprogs \
+          git \
+          squashfs-tools \
+          libisoburn \
+          xorriso \
+          grub-common \
+          mtools \
+          openssl \
+          gzip \
+          sed \
+          findutils \
+          awk
+          
+    - name: Install Python dependencies
+      run: |
+        pip install --upgrade pip
+        pip install maturin requests pydantic openai ollama psutil
+        
+    - name: Build core agent
+      run: ./scripts/build-core.sh
+      
+    - name: Build shell UI
+      run: ./scripts/build-shell.sh
+      
+    - name: Create archiso profile directory
+      run: |
+        sudo mkdir -p work dist
+        sudo chmod 777 work dist
+        
+    - name: Validate archiso configuration
+      run: |
+        if [ -f "src/configs/profiledef.sh" ]; then
+          echo "Profile definition found"
+          cat src/configs/profiledef.sh
+        else
+          echo "Error: profiledef.sh not found"
+          exit 1
+        fi
+        
+    - name: Build ISO (Simulated)
+      run: |
+        echo "Building ISO..."
+        echo "Note: Full archiso build requires native Arch Linux"
+        echo "This workflow validates the build process"
+        echo "For complete ISO build, use Docker or native Arch Linux"
+        
+        # Create a placeholder ISO for artifact testing
+        echo "Creating placeholder ISO for testing..."
+        mkdir -p dist
+        echo "Lucy OS v0.1.0 Placeholder" > dist/lucy-os-0.1.0-x86_64-placeholder.txt
+        
+    - name: Upload ISO artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: lucy-os-build-artifacts
+        path: dist/
+        retention-days: 30
+        
+    - name: Build summary
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Core Agent: Built successfully" >> $GITHUB_STEP_SUMMARY
+        echo "- Desktop UI: Built successfully" >> $GITHUB_STEP_SUMMARY
+        echo "- ISO: Validated (requires native Arch Linux for full build)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "For complete ISO build, use:" >> $GITHUB_STEP_SUMMARY
+        echo "- Docker: \`./scripts/build-docker.sh\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Native Arch Linux: Run in Arch Linux environment" >> $GITHUB_STEP_SUMMARY

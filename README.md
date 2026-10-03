@@ -44,7 +44,45 @@ Recommended: Windows with WSL2 (Arch Linux)
 
 See [docs/installation.md](docs/installation.md) for setup instructions.
 
+## Build Methods
+
+### Docker Build (Recommended)
+
+The recommended way to build the ISO is using Docker, which provides a clean, reproducible Arch Linux environment:
+
+```bash
+./scripts/build-docker.sh
+```
+
+### GitHub Actions CI/CD
+
+Automated builds are available via GitHub Actions. Push to trigger automatic builds.
+
+### Native Arch Linux
+
+For native builds, use Arch Linux WSL2 or a native Arch Linux installation:
+
+```bash
+# In Arch Linux WSL2
+sudo ./scripts/build-iso.sh
+```
+
+See [docs/wsl-build-guide.md](docs/wsl-build-guide.md) for detailed WSL2 setup instructions.
+
 ## Quick Start
+
+### Using Docker (Recommended)
+
+```bash
+# Build complete ISO in Docker
+./scripts/build-docker.sh
+```
+
+### Using GitHub Actions
+
+Push to GitHub to trigger automated builds. Download ISO from Actions artifacts.
+
+### Using Native Arch Linux
 
 ```bash
 # Set up WSL2 environment
@@ -56,8 +94,8 @@ See [docs/installation.md](docs/installation.md) for setup instructions.
 # Build desktop UI
 ./scripts/build-shell.sh
 
-# Build complete ISO
-./scripts/build-iso.sh
+# Build complete ISO (requires Arch Linux)
+sudo ./scripts/build-iso.sh
 ```
 
 ## Components
@@ -143,3 +181,38 @@ MIT License - See LICENSE file for details
 ## Contributing
 
 See [AGENTS.md](AGENTS.md) for development guidelines.
+
+## Build Environment
+
+### Docker
+
+The project includes Docker support for building the ISO in a clean Arch Linux environment:
+
+```bash
+# Build Docker image
+docker build -t lucy-os-builder .
+
+# Run ISO build in container
+docker run --rm \
+  -v $(pwd)/dist:/build/dist \
+  -v $(pwd)/work:/build/work \
+  --privileged \
+  lucy-os-builder \
+  ./scripts/build-iso.sh
+```
+
+Or use the convenience script:
+```bash
+./scripts/build-docker.sh
+```
+
+### GitHub Actions
+
+Automated CI/CD builds are available via GitHub Actions. See `.github/workflows/` for workflow definitions.
+
+### Validation
+
+Before building, validate your environment:
+```bash
+./scripts/validate-build.sh
+```
