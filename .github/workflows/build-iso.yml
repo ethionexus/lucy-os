@@ -125,6 +125,19 @@ jobs:
         sudo apt-get clean || true
         df -h /
 
+    - name: Diagnose Docker environment
+      run: |
+        set +e
+        echo "::error::K01 docker_path=$(command -v docker || echo NONE)"
+        echo "::error::K02 docker_ver=$(docker --version 2>&1 | head -1)"
+        docker info > /tmp/dinfo.log 2>&1; echo "::error::K03 docker_info_exit=$? head=[$(head -6 /tmp/dinfo.log | tr '\n' ' ' | cut -c1-300)]"
+        echo "::error::K04 docker_images=[$(docker images 2>&1 | head -4 | tr '\n' ' ' | cut -c1-300)]"
+        mkdir -p /tmp/dtest && cd /tmp/dtest
+        printf 'FROM alpine:latest\nRUN echo hello-from-alpine\n' > Dockerfile
+        docker build -t lucy-dtest . > /tmp/dbuild.log 2>&1; echo "::error::K05 docker_build_exit=$? tail=[$(tail -4 /tmp/dbuild.log | tr '\n' ' ' | cut -c1-300)]"
+        docker run --rm lucy-dtest echo run-ok > /tmp/drun.log 2>&1; echo "::error::K06 docker_run_exit=$? out=[$(cat /tmp/drun.log | tr '\n' ' ' | cut -c1-200)]"
+        cd "$GITHUB_WORKSPACE"
+
     - name: Build ISO (Docker)
       run: |
         ./scripts/build-docker.sh
