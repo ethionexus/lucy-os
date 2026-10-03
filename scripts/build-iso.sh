@@ -186,6 +186,15 @@ if [ -d "$PROJECT_ROOT/src/shell/src-tauri/target/release/bundle" ] && [ -n "$(l
     cp -r "$PROJECT_ROOT/src/shell/src-tauri/target/release/bundle"/* "$CONFIGS_DIR/airootfs/opt/lucy-shell/"
 fi
 
+# Sync the lucy-launch.mp4 live wallpaper asset from the shell media dir
+# (single source of truth) into the airootfs. The airootfs copy is NOT
+# committed to git to avoid duplicating the 24 MB video blob.
+if [ -f "$PROJECT_ROOT/src/shell/public/media/lucy-launch.mp4" ]; then
+    mkdir -p "$CONFIGS_DIR/airootfs/usr/share/lucy"
+    cp -f "$PROJECT_ROOT/src/shell/public/media/lucy-launch.mp4" \
+        "$CONFIGS_DIR/airootfs/usr/share/lucy/lucy-launch.mp4"
+fi
+
 # Step 4: Build ISO with archiso
 echo "Step 4: Building ISO with archiso..."
 mkarchiso -v -w "$WORK_DIR" -o "$DIST_DIR" "$CONFIGS_DIR"
