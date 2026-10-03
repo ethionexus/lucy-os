@@ -92,23 +92,6 @@ jobs:
         pip install --upgrade pip
         pip install maturin requests pydantic openai ollama psutil
 
-    - name: Diagnose build environment
-      run: |
-        set +e
-        echo "::error::D01 cc=$(command -v cc || echo NONE) gcc=$(command -v gcc || echo NONE)"
-        echo "::error::D02 cargo_home=$CARGO_HOME rustup_home=$RUSTUP_HOME"
-        echo "::error::D03 cargo_bin_ls=$(ls ~/.cargo/bin 2>/dev/null | tr '\n' ' ')"
-        code1=$(curl -s -m 8 -o /dev/null -w '%{http_code}' https://crates.io/api/v1/crates/pyo3 2>&1); echo "::error::D04 crates_io_http=$code1"
-        code2=$(curl -s -m 8 -o /dev/null -w '%{http_code}' https://static.crates.io/ 2>&1); echo "::error::D05 static_crates_http=$code2"
-        cd /tmp && rm -rf cgtest && cargo new cgtest -q && cd cgtest
-        cargo build > /tmp/cgout 2>&1; echo "::error::D06 fresh_cargo_build_exit=$? tail=[$(tail -3 /tmp/cgout | tr '\n' ' ' | cut -c1-200)]"
-        cd /tmp && rm -rf cgtest
-        cd "$GITHUB_WORKSPACE/src/core/python"
-        maturin build --release > /tmp/mbout 2>&1; echo "::error::D07 maturin_build_exit=$? tail=[$(tail -6 /tmp/mbout | tr '\n' ' ' | cut -c1-400)]"
-        echo "::error::D08 rustup_show=$(rustup show 2>&1 | head -4 | tr '\n' ' ')"
-        echo "::error::D09 webkit=[$(pkg-config --modversion webkit2gtk-4.1 2>&1)] gtk=[$(pkg-config --modversion gtk+-3.0 2>&1)] soup=[$(pkg-config --modversion libsoup-3.0 2>&1)]"
-        echo "::error::D10 npm_ping=[$(npm ping 2>&1 | tail -1)]"
-
     - name: Build core agent
       run: ./scripts/build-core.sh
 
