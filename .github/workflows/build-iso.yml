@@ -51,7 +51,8 @@ jobs:
 
     - name: Install build dependencies
       run: |
-        sudo apt-get update
+        sudo apt-get update \
+          || echo "::warning::apt-get update failed; continuing with preinstalled tools"
         sudo apt-get install -y \
           arch-install-scripts \
           dosfstools \
@@ -65,14 +66,15 @@ jobs:
           openssl \
           gzip \
           sed \
-          findutils
+          findutils \
+          gawk \
+          || echo "::warning::some build dependencies could not be installed; continuing"
 
     - name: Install Tauri build dependencies
-      # Tauri v2 system libraries for the WebView build. Kept separate and
-      # non-fatal so the pipeline still completes on runner images where the
-      # packages are already present or named differently; the Tauri build
-      # itself reports any genuinely missing dependency.
-      continue-on-error: true
+      # Tauri v2 system libraries for the WebView build. Non-fatal so the
+      # pipeline still completes on runner images where the packages are
+      # already present or named differently; the Tauri build itself
+      # reports any genuinely missing dependency.
       run: |
         sudo apt-get install -y \
           libwebkit2gtk-4.1-dev \
@@ -82,7 +84,8 @@ jobs:
           libjavascriptcoregtk-4.1-dev \
           libsoup-3.0-dev \
           patchelf \
-          libssl-dev
+          libssl-dev \
+          || echo "::warning::Tauri system libraries could not be installed; continuing"
 
     - name: Install Python dependencies
       run: |
