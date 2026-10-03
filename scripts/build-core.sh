@@ -34,9 +34,22 @@ cd "$CORE_DIR"
 echo "Building Rust extension with maturin..."
 maturin build --release
 
-# Install in development mode for testing
-echo "Installing in development mode..."
-maturin develop
+# Install in development mode when a virtualenv/conda env is active
+# (local development). maturin develop requires VIRTUAL_ENV or
+# CONDA_PREFIX; in CI no virtualenv is active, so install the wheel
+# produced by `maturin build` instead (maturin's recommended workflow).
+if [ -n "${VIRTUAL_ENV:-}" ] || [ -n "${CONDA_PREFIX:-}" ] || [ -d ".venv" ]; then
+    echo "Installing in development mode..."
+    maturin develop
+else
+    echo "No virtualenv detected; installing built wheel..."
+    WHEEL="$(ls -t target/wheels/*.whl 2>/dev/null | head -1)"
+    if [ -z "$WHEEL" ]; then
+        echo "Error: no wheel found in target/wheels/"
+        exit 1
+    fi
+    pip install --force-reinstall "$WHEEL"
+fi
 
 # Install Python dependencies
 echo "Installing Python dependencies..."

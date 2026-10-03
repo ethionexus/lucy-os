@@ -106,6 +106,8 @@ jobs:
         cd "$GITHUB_WORKSPACE/src/core/python"
         maturin build --release > /tmp/mbout 2>&1; echo "::error::D07 maturin_build_exit=$? tail=[$(tail -6 /tmp/mbout | tr '\n' ' ' | cut -c1-400)]"
         echo "::error::D08 rustup_show=$(rustup show 2>&1 | head -4 | tr '\n' ' ')"
+        echo "::error::D09 webkit=[$(pkg-config --modversion webkit2gtk-4.1 2>&1)] gtk=[$(pkg-config --modversion gtk+-3.0 2>&1)] soup=[$(pkg-config --modversion libsoup-3.0 2>&1)]"
+        echo "::error::D10 npm_ping=[$(npm ping 2>&1 | tail -1)]"
 
     - name: Build core agent
       run: ./scripts/build-core.sh
