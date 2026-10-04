@@ -474,7 +474,9 @@ All opt-in. English (US) stays the default system language and layout.
 | Heritage theme | `usr/local/bin/lucy-theme` | Settings → Appearance; `data-theme="heritage"` in `shell.css` |
 | Multi-language AI | `parse_language_flag()` in `nlp.py` | `/lang:am` and friends; `ai_language` under `[ai]` in `agent.conf` |
 
-- Ethiopic layout: `airootfs/usr/share/X11/xkb/symbols/lucy-amharic`
+- Ethiopic layout: staged at
+  `airootfs/usr/share/lucy/overlay/xkb/symbols/lucy-amharic`, installed into
+  `/usr/share/X11/xkb/symbols/` by `customize_airootfs.sh`
   (26 keys, second vowel orders on Shift, `grp:alt_shift_toggle`)
 - Shell RPC: `keyboard_layout`, `system_locale`, `heritage_theme`,
   `get_localization_status`
@@ -505,11 +507,13 @@ Native (`extra`) so they work offline with no Flatpak: `firefox`, `code`,
 
 Hardware acceleration:
 
-- `airootfs/usr/lib/firefox/distribution/policies.json` — WebRender + VA-API +
-  DMA-BUF defaults (this is the Mozilla-sanctioned path; do not use the older
-  `mozilla.cfg` autoconfig approach)
-- `airootfs/etc/chromium-flags.conf` — Arch's chromium launcher sources this
-  automatically; per-user overrides go in `~/.config/chromium-flags.conf`
+- `airootfs/usr/share/lucy/overlay/firefox/distribution/policies.json` —
+  WebRender + VA-API + DMA-BUF defaults, installed to
+  `/usr/lib/firefox/distribution/` by `customize_airootfs.sh` (this is the
+  Mozilla-sanctioned path; do not use the older `mozilla.cfg` autoconfig)
+- `airootfs/usr/share/lucy/overlay/chromium-flags.conf` — installed to
+  `/etc/chromium-flags.conf` by the hook; Arch's chromium launcher sources it
+  automatically, and per-user overrides go in `~/.config/chromium-flags.conf`
 - VA-API packages: `libva`, `libva-utils`, `libvdpau`, `intel-media-driver`.
   NOTE: `libva-mesa-driver` and `mesa-vdpau` were merged into `mesa` and no
   longer exist as separate packages — do not re-add them.
@@ -545,6 +549,43 @@ cd src/core/python && pytest tests
 
 `scripts/verify-app-configs.py` is the quick gate after editing
 `apps.json`, `packages.x86_64` or the browser configs.
+
+#### CRITICAL: the airootfs overlay and pacman file conflicts
+
+archiso copies `airootfs/` into the build root **before** pacstrap, then runs
+`airootfs/root/customize_airootfs.sh` in the chroot afterwards
+(`_make_custom_airootfs` -> `_make_packages` -> `_make_customize_airootfs`).
+
+So **never place a file under a directory owned by a package you install**.
+Doing so makes pacman abort:
+
+```
+error: failed to commit transaction (conflicting files)
+xkeyboard-config: /usr/share/X11/xkb exists in filesystem
+```
+
+This exact mistake shipped in the Week 4 commit and broke CI. It was missed
+because the push was verified but not the CI conclusion — always check the
+check-run result, not just the ref update.
+
+Instead, stage the file under `airootfs/usr/share/lucy/overlay/` and install
+it from `customize_airootfs.sh`. Current staged files:
+
+| Staged | Installed to | Owning package |
+| --- | --- | --- |
+| `overlay/xkb/symbols/lucy-amharic` | `/usr/share/X11/xkb/symbols/` | `xkeyboard-config` |
+| `overlay/firefox/distribution/policies.json` | `/usr/lib/firefox/distribution/` | `firefox` |
+| `overlay/chromium-flags.conf` | `/etc/chromium-flags.conf` | `chromium` |
+
+`scripts/verify-app-configs.py` has a `check_overlay_hook()` guard that fails
+if any collision-prone path reappears, and `lucy-keyboard` self-heals at
+runtime by copying the staged layout if it is missing.
+
+Safe locations (no package ships these): `/etc/lucy/`, `/usr/local/bin/`,
+`/usr/share/lucy/`, `/etc/systemd/system/lucy-*.service`.
+
+Note: `customize_airootfs.sh` is *deprecated* in archiso but still executed;
+it is deleted after running so it never ships in the ISO.
 
 ### Modifying Archiso Profile
 

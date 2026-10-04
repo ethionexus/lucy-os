@@ -17,6 +17,11 @@ STATE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/lucy"
 STATE_FILE="$STATE_DIR/keyboard"
 mkdir -p "$STATE_DIR"
 
+#: where the layout normally lives, and where it is staged in the ISO
+XKB_DIR="/usr/share/X11/xkb/symbols"
+XKB_NAME="lucy-amharic"
+OVERLAY_LAYOUT="/usr/share/lucy/overlay/xkb/symbols/$XKB_NAME"
+
 current() {
     if [ -f "$STATE_FILE" ]; then
         tr -d '[:space:]' < "$STATE_FILE"
@@ -25,13 +30,28 @@ current() {
     fi
 }
 
+# The archiso build hook normally installs the layout, but self-heal here so a
+# missing file (older image, hook skipped) does not silently break the toggle.
+ensure_layout() {
+    [ -f "$XKB_DIR/$XKB_NAME" ] && return 0
+    [ -f "$OVERLAY_LAYOUT" ] || return 0
+    if install -D -m 0644 "$OVERLAY_LAYOUT" "$XKB_DIR/$XKB_NAME" 2>/dev/null; then
+        return 0
+    fi
+    if command -v pkexec >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+        pkexec install -D -m 0644 "$OVERLAY_LAYOUT" "$XKB_DIR/$XKB_NAME" 2>/dev/null && return 0
+    fi
+    return 0
+}
+
 apply() {
     local layout="$1"
     # Prefer the running X session; fall back silently when headless.
     if command -v setxkbmap >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
         if [ "$layout" = "amharic" ]; then
+            ensure_layout
             # English first, then the Lucy Amharic layout as the active group.
-            setxkbmap -layout "us,lucy-amharic" -option "grp:alt_shift_toggle" 2>/dev/null || true
+            setxkbmap -layout "us,$XKB_NAME" -option "grp:alt_shift_toggle" 2>/dev/null || true
         else
             setxkbmap -layout us 2>/dev/null || true
         fi

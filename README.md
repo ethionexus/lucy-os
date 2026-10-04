@@ -287,7 +287,8 @@ usable in English.
 | Multi-language AI | Any AI request | `/lang:am`, `/lang:fr`, `/lang:ar`, `/lang:es`, `/lang:zh`, `/lang:ru` |
 
 The Ethiopic layout is a bundled XKB symbols file
-(`airootfs/usr/share/X11/xkb/symbols/lucy-amharic`) covering 26 keys across
+(`airootfs/usr/share/lucy/overlay/xkb/symbols/lucy-amharic`, installed into
+`/usr/share/X11/xkb/symbols/` at build time) covering 26 keys across
 three rows, with second vowel orders on Shift. All state is persisted under
 `$XDG_CONFIG_HOME/lucy/` (`keyboard`, `locale`, `theme`).
 
@@ -340,6 +341,31 @@ Hardware acceleration is enabled for both browsers:
   VA-API and DMA-BUF by default (users can still override).
 - Chromium — `/etc/chromium-flags.conf` enables GPU rasterisation and VA-API
   decode.
+
+### The airootfs overlay (important)
+
+archiso copies `airootfs/` into the build root **before** pacstrap runs. Any
+file placed directly under a package-owned directory therefore makes pacman
+abort with a file conflict:
+
+```
+error: failed to commit transaction (conflicting files)
+xkeyboard-config: /usr/share/X11/xkb exists in filesystem
+```
+
+Files that must live in such directories are staged under
+`/usr/share/lucy/overlay/` (a path no package owns) and installed by
+`airootfs/root/customize_airootfs.sh`, which archiso runs in the chroot after
+the packages are in place:
+
+| Staged at | Installed to |
+| --- | --- |
+| `overlay/xkb/symbols/lucy-amharic` | `/usr/share/X11/xkb/symbols/` |
+| `overlay/firefox/distribution/policies.json` | `/usr/lib/firefox/distribution/` |
+| `overlay/chromium-flags.conf` | `/etc/chromium-flags.conf` |
+
+`scripts/verify-app-configs.py` fails if any file reappears under a
+package-owned path in the airootfs.
 
 Supporting VA-API packages: `libva`, `libva-utils`, `libvdpau`,
 `intel-media-driver` (`mesa` already provides the Radeon VA-API driver).

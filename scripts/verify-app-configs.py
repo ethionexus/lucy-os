@@ -27,8 +27,11 @@ REPO = Path(__file__).resolve().parents[1]
 AIROOTFS = REPO / "src" / "configs" / "airootfs"
 
 APPS_JSON = AIROOTFS / "etc" / "lucy" / "apps.json"
-POLICIES_JSON = AIROOTFS / "usr" / "lib" / "firefox" / "distribution" / "policies.json"
-CHROMIUM_FLAGS = AIROOTFS / "etc" / "chromium-flags.conf"
+OVERLAY = AIROOTFS / "usr" / "share" / "lucy" / "overlay"
+POLICIES_JSON = OVERLAY / "firefox" / "distribution" / "policies.json"
+CHROMIUM_FLAGS = OVERLAY / "chromium-flags.conf"
+XKB_LAYOUT = OVERLAY / "xkb" / "symbols" / "lucy-amharic"
+CUSTOMIZE = AIROOTFS / "root" / "customize_airootfs.sh"
 FLATPAK_INIT = AIROOTFS / "usr" / "local" / "bin" / "lucy-flatpak-init"
 APP_MANAGER = AIROOTFS / "usr" / "local" / "bin" / "lucy-app-manager"
 UNIT = AIROOTFS / "etc" / "systemd" / "system" / "lucy-flatpak-init.service"
@@ -153,9 +156,9 @@ def check_packages() -> None:
 
 
 def check_browser_configs() -> None:
-    print("=== browser hardware acceleration ===")
+    print("=== browser hardware acceleration (staged overlay) ===")
     if not POLICIES_JSON.is_file():
-        fail("firefox policies.json missing")
+        fail("firefox policies.json missing from the overlay")
     else:
         try:
             pol = json.loads(POLICIES_JSON.read_text(encoding="utf-8"))
@@ -168,7 +171,7 @@ def check_browser_configs() -> None:
             fail(f"firefox policies.json invalid: {exc}")
 
     if not CHROMIUM_FLAGS.is_file():
-        fail("chromium-flags.conf missing")
+        fail("chromium-flags.conf missing from the overlay")
     else:
         text = CHROMIUM_FLAGS.read_text(encoding="utf-8")
         flags = [ln.strip() for ln in text.splitlines()
@@ -179,10 +182,55 @@ def check_browser_configs() -> None:
             fail("chromium-flags.conf has no flags")
 
 
+def check_overlay_hook() -> None:
+    """Nothing may sit under a package-owned directory in the airootfs.
+
+    archiso copies the overlay before pacstrap, so a file under e.g.
+    /usr/share/X11/xkb makes pacman abort with a file conflict. Such files
+    must be staged under usr/share/lucy/overlay and copied by the hook.
+    """
+    print("=== airootfs overlay safety ===")
+
+    risky = [
+        "usr/share/X11",
+        "usr/lib/firefox",
+        "usr/lib",
+        "etc/chromium-flags.conf",
+    ]
+    found = [p for p in risky if (AIROOTFS / p).exists()]
+    if found:
+        fail(f"collision-prone paths present in the airootfs: {found}")
+    else:
+        ok("no files under package-owned paths in the airootfs")
+
+    if not XKB_LAYOUT.is_file():
+        fail("xkb layout missing from the overlay")
+    else:
+        text = XKB_LAYOUT.read_text(encoding="utf-8")
+        if 'xkb_symbols "basic"' in text and "level3(ralt_switch)" in text:
+            ok("xkb layout staged and well-formed")
+        else:
+            fail("xkb layout staged but missing required xkb boilerplate")
+
+    if not CUSTOMIZE.is_file():
+        fail("customize_airootfs.sh hook missing")
+        return
+    text = CUSTOMIZE.read_text(encoding="utf-8")
+    for needle, label in (
+        ("/usr/share/X11/xkb/symbols", "installs the xkb layout"),
+        ("/usr/lib/firefox/distribution/policies.json", "installs the firefox policy"),
+        ("/etc/chromium-flags.conf", "installs the chromium flags"),
+    ):
+        if needle in text:
+            ok(f"hook {label}")
+        else:
+            fail(f"hook does not {label}")
+
+
 def check_scripts() -> None:
     print("=== shell helpers ===")
     bash = shutil.which("bash")
-    for path in (FLATPAK_INIT, APP_MANAGER):
+    for path in (FLATPAK_INIT, APP_MANAGER, CUSTOMIZE):
         if not path.is_file():
             fail(f"missing {path.name}")
             continue
@@ -218,6 +266,7 @@ def main() -> int:
     check_catalog()
     check_packages()
     check_browser_configs()
+    check_overlay_hook()
     check_scripts()
     check_unit()
 
