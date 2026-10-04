@@ -422,6 +422,69 @@ Packages in `src/configs/packages.x86_64`: `chromium`, `alacritty`,
   (the `calamares` package itself is AUR-only, so it is NOT in
   `packages.x86_64`; install from AUR to enable the graphical installer)
 
+### v0.3.0 "Evolution Edition"
+
+Four pillars. **English is the default throughout** — every localization
+feature is opt-in and reverting it leaves the system fully usable in English.
+
+#### Week 1: hardware detection and model selection
+
+`src/core/python/lucy_agent/models.py` profiles the machine at startup and
+selects a fitting model so the AI never oversubscribes the hardware.
+
+- `HardwareProfile` (cores/RAM/VRAM/backend), `ModelSpec` (size/quant/context)
+- `init()`, `get_profile()`, `get_model_spec()`, `is_light_profile()`,
+  `is_high_profile()`
+
+#### Week 2: offline semantic file indexer
+
+`src/core/python/lucy_agent/search.py` — offline semantic file search.
+
+- `SemanticIndexer`, `GGUFEmbedder` (4-bit GGUF), `HashEmbedder` fallback
+- `VectorStore` (ChromaDB, JSONL fallback), `chunk_text()`, `search_files()`
+- `throttle()` enforces the max-50% CPU budget (5% target, 50% pause)
+- Daemon: `search_daemon.py` +
+  `airootfs/etc/systemd/system/lucy-indexer.service`
+- Shell: `search_files` Tauri command
+- AI performance rules: max 50% CPU/GPU, on-demand model load, 3-minute idle
+  auto-unload, 4-bit quantized GGUF only
+
+#### Week 3: self-healing and instant rollback
+
+- `snapshot.py`: `SnapshotManager` (Btrfs/timeshift), `BootGuard`,
+  `create_snapshot()`, `trigger_rollback()`, `get_boot_status()`
+- `autoheal.py`: journal fault watchdog, `record_boot()`, `mark_healthy()`,
+  `handle_faults()`; `_load_config` parses both INI (`agent.conf`) and JSON
+- Btrfs cannot swap a live `/`: `trigger_rollback()` writes
+  `/var/lib/lucy/rollback.request`; `lucy-rollback.service`
+  (`DefaultDependencies=no`, before `graphical-session-pre`) applies it early
+  in boot with `btrfs subvolume set-default`
+- Keys: `rollback_enabled`, `snapshot_on_boot`, `journal_scan_interval`,
+  `rollback_fail_threshold` under `[auto_healing]` in `agent.conf`
+- Shell: `get_boot_status`, `trigger_rollback`, `create_snapshot`
+
+#### Week 4: optional Amharic/Ge'ez localization
+
+All opt-in. English (US) stays the default system language and layout.
+
+| Feature | Entry point | Wiring |
+| --- | --- | --- |
+| Keyboard toggle | `usr/local/bin/lucy-keyboard` | TopBar indicator, **Super+Space** in `etc/xdg/openbox/lxde-rc.xml`, Settings |
+| Locale pack | `usr/local/bin/lucy-locale` | Settings → Region & Language; writes `/etc/locale.gen` + `locale-gen` |
+| Heritage theme | `usr/local/bin/lucy-theme` | Settings → Appearance; `data-theme="heritage"` in `shell.css` |
+| Multi-language AI | `parse_language_flag()` in `nlp.py` | `/lang:am` and friends; `ai_language` under `[ai]` in `agent.conf` |
+
+- Ethiopic layout: `airootfs/usr/share/X11/xkb/symbols/lucy-amharic`
+  (26 keys, second vowel orders on Shift, `grp:alt_shift_toggle`)
+- Shell RPC: `keyboard_layout`, `system_locale`, `heritage_theme`,
+  `get_localization_status`
+- State persisted in `$XDG_CONFIG_HOME/lucy/` as `keyboard`, `locale`, `theme`
+- `Super+Space` in `lxde-rc.xml` must `Execute` `lucy-keyboard toggle` —
+  Openbox's own `Toggle` action switches windows, not layouts
+
+**Never** change the default language automatically: `lucy-locale remove`
+only resets the state file, and English remains active.
+
 ### Modifying Archiso Profile
 
 1. Edit `src/configs/profiledef.sh` for metadata

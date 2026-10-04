@@ -142,6 +142,47 @@ fn create_snapshot(name: Option<String>) -> CommandResult {
     execute_command(cmd)
 }
 
+// ---------------------------------------------------------------------------
+// Week 4: optional Amharic/Ge'ez localization.
+// Every one of these is opt-in. English (US) stays the system default and the
+// helpers degrade to a no-op / English when the optional tooling is missing.
+// ---------------------------------------------------------------------------
+
+/// Toggle (or force) the keyboard layout: English (US) <-> Amharic/Ethiopic.
+#[tauri::command]
+fn keyboard_layout(action: Option<String>) -> CommandResult {
+    let a = action.unwrap_or_else(|| "toggle".to_string());
+    let escaped = a.replace('\'', "'\\''");
+    execute_command(format!("lucy-keyboard '{}'", escaped))
+}
+
+/// Install / remove / query the optional am_ET.UTF-8 locale pack.
+#[tauri::command]
+fn system_locale(action: Option<String>) -> CommandResult {
+    let a = action.unwrap_or_else(|| "status".to_string());
+    let escaped = a.replace('\'', "'\\''");
+    execute_command(format!("lucy-locale '{}'", escaped))
+}
+
+/// Toggle (or force) the optional Heritage theme accent.
+#[tauri::command]
+fn heritage_theme(action: Option<String>) -> CommandResult {
+    let a = action.unwrap_or_else(|| "status".to_string());
+    let escaped = a.replace('\'', "'\\''");
+    execute_command(format!("lucy-theme '{}'", escaped))
+}
+
+/// Report the current state of every optional localization feature so the
+/// Settings pane can render accurate toggle positions on mount.
+#[tauri::command]
+fn get_localization_status() -> CommandResult {
+    execute_command(
+        "printf 'keyboard=%s\\n' \"$(lucy-keyboard status 2>/dev/null)\"; \
+         printf 'locale=%s\\n' \"$(lucy-locale status 2>/dev/null)\"; \
+         printf 'theme=%s\\n' \"$(lucy-theme status 2>/dev/null)\"".to_string(),
+    )
+}
+
 #[tauri::command]
 fn get_system_info() -> SystemInfo {
     let mut sys = System::new_all();
@@ -190,6 +231,10 @@ pub fn run() {
             get_boot_status,
             trigger_rollback,
             create_snapshot,
+            keyboard_layout,
+            system_locale,
+            heritage_theme,
+            get_localization_status,
             get_system_info,
             get_logs,
             agent_status

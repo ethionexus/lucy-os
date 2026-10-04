@@ -1,0 +1,54 @@
+#!/bin/bash
+# Lucy OS optional keyboard layout toggle.
+#
+# English (US) is the system default. This script toggles between the
+# default English layout and the optional Amharic (Ethiopic) layout.
+# It is invoked by the TopBar / Settings UI and the Super+Space keybind.
+#
+# Usage:
+#   lucy-keyboard            # toggle
+#   lucy-keyboard amharic    # force Amharic
+#   lucy-keyboard english    # force English
+#   lucy-keyboard status     # print current layout
+
+set -uo pipefail
+
+STATE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/lucy"
+STATE_FILE="$STATE_DIR/keyboard"
+mkdir -p "$STATE_DIR"
+
+current() {
+    if [ -f "$STATE_FILE" ]; then
+        tr -d '[:space:]' < "$STATE_FILE"
+    else
+        echo "english"
+    fi
+}
+
+apply() {
+    local layout="$1"
+    # Prefer the running X session; fall back silently when headless.
+    if command -v setxkbmap >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+        if [ "$layout" = "amharic" ]; then
+            # English first, then the Lucy Amharic layout as the active group.
+            setxkbmap -layout "us,lucy-amharic" -option "grp:alt_shift_toggle" 2>/dev/null || true
+        else
+            setxkbmap -layout us 2>/dev/null || true
+        fi
+    fi
+    echo "$layout" > "$STATE_FILE"
+    echo "keyboard layout: $layout"
+}
+
+case "${1:-toggle}" in
+    amharic) apply amharic ;;
+    english) apply english ;;
+    status)  current ;;
+    toggle|*)
+        if [ "$(current)" = "amharic" ]; then
+            apply english
+        else
+            apply amharic
+        fi
+        ;;
+esac

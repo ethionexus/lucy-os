@@ -1,0 +1,61 @@
+#!/bin/bash
+# Lucy OS optional Amharic locale pack installer.
+#
+# English (en_US.UTF-8) is the default and always active. This script
+# opts the system into the Amharic locale on demand. It never changes the
+# default language automatically.
+#
+# Usage:
+#   lucy-locale install    # generate + optionally activate am_ET.UTF-8
+#   lucy-locale remove     # deactivate (keeps English default)
+#   lucy-locale status     # report availability
+
+set -uo pipefail
+
+LOCALE="am_ET.UTF-8"
+GEN_FILE="/etc/locale.gen"
+STATE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/lucy"
+STATE_FILE="$STATE_DIR/locale"
+mkdir -p "$STATE_DIR"
+
+status() {
+    if locale -a 2>/dev/null | grep -qi "^am_ET"; then
+        echo "installed"
+    else
+        echo "not-installed"
+    fi
+}
+
+install_locale() {
+    if ! grep -qE "^#?\s*${LOCALE}\s" "$GEN_FILE" 2>/dev/null; then
+        echo "${LOCALE} UTF-8" >> "$GEN_FILE"
+    fi
+    # Uncomment the entry if present.
+    sed -i "s/^#\s*\(${LOCALE}\)/\1/" "$GEN_FILE" 2>/dev/null || true
+
+    if command -v locale-gen >/dev/null 2>&1; then
+        locale-gen 2>&1 || locale-gen "${LOCALE}" 2>&1 || true
+    fi
+
+    if locale -a 2>/dev/null | grep -qi "^am_ET"; then
+        echo "amharic" > "$STATE_FILE"
+        echo "Amharic locale installed (${LOCALE})."
+        echo "English remains the default; switch explicitly if desired:"
+        echo "  localectl set-locale LANG=${LOCALE}"
+    else
+        echo "Locale generation did not complete (need root?)." >&2
+        return 1
+    fi
+}
+
+remove_locale() {
+    echo "english" > "$STATE_FILE"
+    echo "Amharic locale deactivated. English remains the default."
+}
+
+case "${1:-status}" in
+    install) install_locale ;;
+    remove)  remove_locale ;;
+    status)  status ;;
+    *) echo "Usage: lucy-locale {install|remove|status}" >&2; exit 2 ;;
+esac

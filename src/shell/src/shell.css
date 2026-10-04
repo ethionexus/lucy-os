@@ -361,3 +361,146 @@
   from { opacity: 0; transform: translateX(24px); }
   to { opacity: 1; transform: translateX(0); }
 }
+
+/* ===================================================================
+   Week 4: optional Amharic/Ge'ez localization + Heritage theme
+   All of this is opt-in. The default obsidian/gold look is untouched
+   unless `data-theme="heritage"` is set on <html> by Settings.
+   =================================================================== */
+
+/* Heritage theme: warmer gold ramp + Ethiopic accent. Cosmetic only. */
+:root[data-theme="heritage"] {
+  --lucy-accent: #c9a227;
+  --lucy-accent-soft: rgba(201, 162, 39, 0.16);
+  --lucy-obsidian: #14110d;
+}
+
+:root[data-theme="heritage"] .topbar,
+:root[data-theme="heritage"] .cc-panel,
+:root[data-theme="heritage"] .dock {
+  background: rgba(20, 17, 13, 0.72);
+  border-color: rgba(201, 162, 39, 0.28);
+}
+
+:root[data-theme="heritage"] .topbar-brand {
+  color: #e6c65c;
+}
+
+/* Top bar keyboard-layout toggle */
+.status-icon.keyboard-toggle {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  min-width: 34px;
+}
+
+.status-icon.keyboard-toggle.on {
+  border-color: rgba(201, 162, 39, 0.5);
+  background: rgba(201, 162, 39, 0.16);
+  color: #e6c65c;
+}
+
+/* Settings pane */
+.settings-panel {
+  position: fixed;
+  top: 52px;
+  right: 12px;
+  width: 380px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding: 1rem 1.1rem 1.2rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(26, 26, 26, 0.82);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  color: #e0e0e0;
+  animation: slideIn 180ms ease-out;
+  z-index: 1200;
+}
+
+.settings-section {
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.settings-section:last-of-type {
+  border-bottom: none;
+}
+
+.settings-section h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #d4af37;
+}
+
+.settings-note {
+  margin: 0 0 0.6rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: rgba(224, 224, 224, 0.62);
+}
+
+.settings-note code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(212, 175, 55, 0.14);
+  color: #e8dcc4;
+  font-size: 0.72rem;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.settings-label {
+  font-size: 0.8rem;
+  color: #e8dcc4;
+}
+
+.settings-state {
+  font-size: 0.7rem;
+  font-style: normal;
+  color: rgba(224, 224, 224, 0.5);
+}
+
+.settings-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.settings-status {
+  margin: 0.7rem 0 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #b8c4cc;
+  font-size: 0.7rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cc-btn {
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e8dcc4;
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.cc-btn:hover:not(:disabled) {
+  border-color: rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.cc-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

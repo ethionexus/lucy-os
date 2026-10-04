@@ -1,0 +1,49 @@
+// Lucy OS — optional Amharic (Ethiopic) keyboard layout.
+//
+// This layout is strictly opt-in. English (US) remains the system default;
+// users enable Amharic via Settings → Region & Language or Super+Space.
+//
+// Base keys map to the Ethiopic syllables; Shift gives the second vowel
+// order. Numbers and symbols remain ASCII for convenience.
+
+default partial alphanumeric_keys
+xkb_symbols "basic" {
+    name[Group1] = "Amharic (Ethiopic, Lucy)";
+
+    // Number row left as ASCII (Ethiopic numerals available separately).
+    key <TLDE>  { [ grave, asciitilde, U135F, U1360 ] }; // ፟ ፠
+
+    // Top row: ቀ ወ እ ር ት ይ ኡ ኢ ኦ ፕ
+    key <AD01> { [ U1240, U1241 ] }; // ቀ ቁ
+    key <AD02> { [ U12C8, U12C9 ] }; // ወ ዉ
+    key <AD03> { [ U12A5, U12A4 ] }; // እ ኤ
+    key <AD04> { [ U122D, U122E ] }; // ር ሮ
+    key <AD05> { [ U1275, U1276 ] }; // ት ቶ
+    key <AD06> { [ U12ED, U12EE ] }; // ይ ዮ
+    key <AD07> { [ U12A1, U12A2 ] }; // ኡ ኢ
+    key <AD08> { [ U12A2, U12A3 ] }; // ኢ ኣ
+    key <AD09> { [ U12A6, U12A7 ] }; // ኦ ኧ
+    key <AD10> { [ U1355, U1356 ] }; // ፕ ፖ
+
+    // Home row: አ ስ ድ ፍ ግ ህ ጅ ክ ል
+    key <AC01> { [ U12A0, U12A3 ] }; // አ ኣ
+    key <AC02> { [ U1235, U1236 ] }; // ስ ሶ
+    key <AC03> { [ U12F5, U12F6 ] }; // ድ ዶ
+    key <AC04> { [ U134D, U134E ] }; // ፍ ፎ
+    key <AC05> { [ U130D, U130E ] }; // ግ ጎ
+    key <AC06> { [ U1205, U1206 ] }; // ህ ሆ
+    key <AC07> { [ U1305, U1306 ] }; // ጅ ጆ
+    key <AC08> { [ U12AD, U12AE ] }; // ክ ኮ
+    key <AC09> { [ U120D, U120E ] }; // ል ሎ
+
+    // Bottom row: ዝ ሽ ች ቭ ብ ን ም
+    key <AB01> { [ U12DD, U12DE ] }; // ዝ ዞ
+    key <AB02> { [ U123D, U123E ] }; // ሽ ሾ
+    key <AB03> { [ U127D, U127E ] }; // ች ቾ
+    key <AB04> { [ U126D, U126E ] }; // ቭ ቮ
+    key <AB05> { [ U1265, U1266 ] }; // ብ ቦ
+    key <AB06> { [ U1295, U1296 ] }; // ን ኖ
+    key <AB07> { [ U121D, U121E ] }; // ም ሞ
+
+    include "level3(ralt_switch)"
+};

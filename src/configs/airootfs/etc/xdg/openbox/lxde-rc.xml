@@ -15,4 +15,24 @@
       </desktop>
     </desktops>
   </applications>
+
+  <!--
+    Week 4 (optional Amharic/Ge'ez localization).
+
+    Super+Space flips the input layout between English (US) and the optional
+    Amharic (Ethiopic) layout. Both layouts stay in the group so Openbox's own
+    grp:alt_shift_toggle also works. Nothing here changes the default language:
+    English remains the system default and Amharic is never activated unless
+    the user presses this binding (or uses the TopBar / Settings toggle).
+  -->
+  <keyboard>
+    <keybind key="Super+space">
+      <action name="Execute">
+        <command>/usr/local/bin/lucy-keyboard toggle</command>
+        <startupnotify>
+          <enabled>false</enabled>
+        </startupnotify>
+      </action>
+    </keybind>
+  </keyboard>
 </openbox_config>

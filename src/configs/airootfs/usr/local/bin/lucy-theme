@@ -1,0 +1,76 @@
+#!/bin/bash
+# Lucy OS optional Heritage Theme toggle.
+#
+# The default theme is obsidian + gold (the standard Lucy look). The Heritage
+# theme layers an optional Ge'ez/Ethiopic accent on top: a Ge'ez greeting
+# mark in the splash/branding and a warmer gold ramp. It is purely cosmetic,
+# additive, and never changes layout, locale, or keyboard input.
+#
+# Usage:
+#   lucy-theme                # toggle between default and heritage
+#   lucy-theme default        # force the default obsidian/gold theme
+#   lucy-theme heritage       # force the Heritage theme
+#   lucy-theme status         # print current theme
+#   lucy-theme accent "text"  # print text with a Ge'ez accent prefix
+
+set -uo pipefail
+
+STATE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/lucy"
+STATE_FILE="$STATE_DIR/theme"
+SHARE_DIR="/usr/share/lucy"
+mkdir -p "$STATE_DIR"
+
+GEEZ_GREETING="ሰላም"   # selam - hello
+GEEZ_BLESSING="ሐሰስ"   # hases - peace
+HERITAGE_ACCENT="#C9A227" # warm gold used by the Heritage theme
+
+current() {
+    if [ -f "$STATE_FILE" ]; then
+        tr -d '[:space:]' < "$STATE_FILE"
+    else
+        echo "default"
+    fi
+}
+
+apply() {
+    local theme="$1"
+    case "$theme" in
+        heritage) accent="$HERITAGE_ACCENT" ;;
+        *)        accent="#D4AF37" ;;
+    esac
+
+    if [ -d "$SHARE_DIR" ]; then
+        {
+            echo "theme=$theme"
+            echo "accent=$accent"
+            echo "geez=$GEEZ_GREETING $GEEZ_BLESSING"
+        } > "$SHARE_DIR/heritage.conf"
+    fi
+
+    echo "$theme" > "$STATE_FILE"
+    # Publish to the desktop session so the shell can pick it up live.
+    if command -v xprop >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+        xprop -root -f LUCY_THEME 8s -set LUCY_THEME "$theme" 2>/dev/null || true
+        xprop -root -f LUCY_ACCENT 8s -set LUCY_ACCENT "$accent" 2>/dev/null || true
+    fi
+
+    echo "theme: $theme"
+}
+
+accent() {
+    echo "$GEEZ_GREETING $*"
+}
+
+case "${1:-toggle}" in
+    default)  apply default ;;
+    heritage) apply heritage ;;
+    status)   current ;;
+    accent)   shift; accent "$@" ;;
+    toggle|*)
+        if [ "$(current)" = "heritage" ]; then
+            apply default
+        else
+            apply heritage
+        fi
+        ;;
+esac

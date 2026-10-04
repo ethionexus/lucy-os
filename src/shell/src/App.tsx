@@ -9,6 +9,7 @@ import Dock from "./components/Dock";
 import TopBar from "./components/TopBar";
 import ControlCenter from "./components/ControlCenter";
 import Flow from "./components/Flow";
+import Settings from "./components/Settings";
 import "./shell.css";
 
 interface SystemInfo {
@@ -24,6 +25,7 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
   const [controlCenter, setControlCenter] = useState(false);
+  const [settings, setSettings] = useState(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [activeTab, setActiveTab] = useState<"chat" | "monitor" | "logs" | "flow">("chat");
 
@@ -62,7 +64,10 @@ function App() {
         <Welcome onComplete={() => setShowWelcome(false)} />
       )}
 
-      <TopBar onToggleControlCenter={() => setControlCenter((v) => !v)} />
+      <TopBar
+        onToggleControlCenter={() => setControlCenter((v) => !v)}
+        onOpenSettings={() => setSettings((v) => !v)}
+      />
 
       <div className="app">
         <main className="main">
@@ -104,6 +109,7 @@ function App() {
 
       <Dock />
       <ControlCenter open={controlCenter} onClose={() => setControlCenter(false)} />
+      {settings && <Settings onClose={() => setSettings(false)} />}
     </>
   );
 }

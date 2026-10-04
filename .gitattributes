@@ -1,0 +1,27 @@
+# Lucy OS is developed partly on Windows but every script in the ISO is
+# executed on Linux, so line endings matter. `core.autocrlf=true` already
+# normalises to LF in the repository; these rules make the requirement explicit
+# and protect the Linux-only assets from any future re-encoding.
+
+* text=auto eol=lf
+
+# Shell entry points and XKB data must be LF or they fail at runtime.
+*.sh text eol=lf
+src/configs/airootfs/usr/local/bin/* text eol=lf
+src/configs/airootfs/etc/xdg/autostart/* text eol=lf
+src/configs/airootfs/usr/share/X11/xkb/symbols/* text eol=lf
+src/configs/airootfs/usr/share/lucy/*.conf text eol=lf
+
+# Media and other binaries must never be touched.
+*.mp4 binary
+*.mkv binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.so binary
+*.iso binary
