@@ -7,7 +7,7 @@ interface DockApp {
   /** Launch an external application by desktop name / command. */
   target?: string;
   /** Or run an in-shell action instead. */
-  action?: "palette" | "store";
+  action?: "palette" | "store" | "settings";
 }
 
 const APPS: DockApp[] = [
@@ -18,15 +18,16 @@ const APPS: DockApp[] = [
   { id: "terminal", name: "Terminal", icon: "⌨️", target: "alacritty" },
   { id: "media", name: "Media", icon: "🎬", target: "mpv" },
   { id: "hub", name: "Lucy Hub", icon: "🤖", target: "lucy-shell" },
-  { id: "settings", name: "Settings", icon: "⚙️", target: "lxappearance" },
+  { id: "settings", name: "Settings", icon: "⚙️", action: "settings" },
 ];
 
 interface DockProps {
   onOpenPalette: () => void;
   onOpenStore: () => void;
+  onOpenSettings: () => void;
 }
 
-export default function Dock({ onOpenPalette, onOpenStore }: DockProps) {
+export default function Dock({ onOpenPalette, onOpenStore, onOpenSettings }: DockProps) {
   const launch = async (app: DockApp) => {
     if (app.action === "palette") {
       onOpenPalette();
@@ -34,6 +35,10 @@ export default function Dock({ onOpenPalette, onOpenStore }: DockProps) {
     }
     if (app.action === "store") {
       onOpenStore();
+      return;
+    }
+    if (app.action === "settings") {
+      onOpenSettings();
       return;
     }
     if (!app.target) return;

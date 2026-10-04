@@ -151,7 +151,11 @@ function App() {
         </nav>
       </div>
 
-      <Dock onOpenPalette={togglePalette} onOpenStore={openStore} />
+      <Dock
+        onOpenPalette={togglePalette}
+        onOpenStore={openStore}
+        onOpenSettings={() => setSettings(true)}
+      />
       <ControlCenter open={controlCenter} onClose={() => setControlCenter(false)} />
       {settings && <Settings onClose={() => setSettings(false)} />}
       <CommandPalette

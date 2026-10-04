@@ -443,6 +443,22 @@ def check_installer_and_palette() -> None:
     elif part.is_file():
         fail("partition.conf has no /.snapshots subvolume")
 
+    # bootloader.conf installs GRUB into the target, so GRUB has to be on the
+    # medium as well or a Calamares install cannot finish.
+    boot = cal / "modules" / "bootloader.conf"
+    if boot.is_file() and "grub" in boot.read_text(encoding="utf-8").lower():
+        if "grub" in pkgs:
+            ok("bootloader.conf wants GRUB and grub is in packages.x86_64")
+        else:
+            fail("bootloader.conf installs GRUB but grub is not in packages.x86_64")
+
+    # Desktop entries must point at an icon that actually exists.
+    pixmap = AIROOTFS / "usr" / "share" / "pixmaps" / "lucy.png"
+    if pixmap.is_file():
+        ok("lucy.png icon shipped for the desktop entries")
+    else:
+        fail("usr/share/pixmaps/lucy.png missing (Icon=lucy would not resolve)")
+
     if (AIROOTFS / "etc" / "skel" / "Desktop" / "calamares.desktop").is_file():
         ok("live Desktop shortcut Install Lucy OS")
     else:

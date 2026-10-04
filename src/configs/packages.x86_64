@@ -123,6 +123,10 @@ archinstall
 btrfs-progs
 dosfstools
 efibootmgr
+# Calamares' bootloader module (see etc/calamares/modules/bootloader.conf)
+# installs GRUB into the target, so it must be on the medium too.
+grub
+os-prober
 
 # Tauri dependencies
 gtk3
