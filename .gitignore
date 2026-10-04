@@ -72,3 +72,9 @@ logs/
 
 # QEMU
 qemu-*.pid
+
+# The archiso profile is the ISO payload: never ignore anything inside it.
+# Generic Python/Node patterns like `lib/` would otherwise silently drop
+# files such as usr/lib/firefox/distribution/policies.json from the ISO.
+!src/configs/airootfs/usr/lib/
+!src/configs/airootfs/usr/lib/**

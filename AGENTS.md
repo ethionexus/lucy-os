@@ -485,6 +485,67 @@ All opt-in. English (US) stays the default system language and layout.
 **Never** change the default language automatically: `lucy-locale remove`
 only resets the state file, and English remains active.
 
+### v0.4.0 Phase 1: essential apps and Flatpak
+
+#### Flatpak / Flathub
+
+- Packages: `flatpak`, `xdg-desktop-portal`, `xdg-desktop-portal-gtk`,
+  `xdg-user-dirs` (added to `packages.x86_64`)
+- First-boot: `airootfs/etc/systemd/system/lucy-flatpak-init.service` runs
+  `usr/local/bin/lucy-flatpak-init`
+- Idempotent (`--if-not-exists`), marker at
+  `/var/lib/lucy/flatpak-init.done`, never fails the boot when offline.
+  `LUCY_STATE_DIR` overrides the marker location for testing.
+- Manual run: `lucy-flatpak-init [--status|--force]`
+
+#### Core pre-installed apps
+
+Native (`extra`) so they work offline with no Flatpak: `firefox`, `code`,
+`celluloid`, `mpv`, `alacritty`, `thunar`, `chromium`.
+
+Hardware acceleration:
+
+- `airootfs/usr/lib/firefox/distribution/policies.json` — WebRender + VA-API +
+  DMA-BUF defaults (this is the Mozilla-sanctioned path; do not use the older
+  `mozilla.cfg` autoconfig approach)
+- `airootfs/etc/chromium-flags.conf` — Arch's chromium launcher sources this
+  automatically; per-user overrides go in `~/.config/chromium-flags.conf`
+- VA-API packages: `libva`, `libva-utils`, `libvdpau`, `intel-media-driver`.
+  NOTE: `libva-mesa-driver` and `mesa-vdpau` were merged into `mesa` and no
+  longer exist as separate packages — do not re-add them.
+
+#### App manager
+
+- Module: `src/core/python/lucy_agent/appstore.py` (stdlib only)
+- Catalog: `airootfs/etc/lucy/apps.json` (schema: `version`, `remote_name`,
+  `remote_url`, `apps[]` with `id`, `name`, `category`, `kind`
+  (`flatpak`|`native`), `core`, `native_package`)
+- CLI: `airootfs/usr/local/bin/lucy-app-manager` — tries `python3` then
+  `python`, picking the first interpreter that can import the module, then
+  falls back to running `appstore.py` directly. `--json` for machine output.
+- Tauri RPC: `app_catalog`, `app_search`, `app_install`, `app_remove`,
+  `app_installed`, `app_status`, `app_flathub_setup`
+- All system access goes through an injectable `runner`, so tests assert exact
+  command lines without a real Flatpak.
+
+#### Lazy package exports (important)
+
+`lucy_agent/__init__.py` resolves exports lazily via PEP 562 `__getattr__`.
+Do **not** add eager imports there — it would force `pydantic` etc. to load for
+the stdlib-only `appstore`, breaking `lucy-app-manager` on minimal systems.
+`tests/test_package_exports.py` guards this with a pydantic-free subprocess.
+
+#### Verification
+
+```bash
+python scripts/verify-app-configs.py   # config/schema/unit checks (CI-safe)
+bash   scripts/test-app-manager.sh     # functional smoke test (fake flatpak)
+cd src/core/python && pytest tests
+```
+
+`scripts/verify-app-configs.py` is the quick gate after editing
+`apps.json`, `packages.x86_64` or the browser configs.
+
 ### Modifying Archiso Profile
 
 1. Edit `src/configs/profiledef.sh` for metadata

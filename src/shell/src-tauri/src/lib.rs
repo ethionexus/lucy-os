@@ -183,6 +183,58 @@ fn get_localization_status() -> CommandResult {
     )
 }
 
+// ---------------------------------------------------------------------------
+// v0.4.0 Phase 1: Lucy App Manager (Flatpak/Flathub front-end).
+// All of these delegate to the `lucy-app-manager` launcher, which locates the
+// stdlib-only Python module wherever it was installed. Output is JSON.
+// ---------------------------------------------------------------------------
+
+fn app_manager(args: &str) -> CommandResult {
+    execute_command(format!("lucy-app-manager {} --json", args))
+}
+
+/// The curated application catalog (core pre-installed + recommended).
+#[tauri::command]
+fn app_catalog() -> CommandResult {
+    app_manager("list")
+}
+
+/// Search the catalog and Flathub.
+#[tauri::command]
+fn app_search(query: String) -> CommandResult {
+    app_manager(&format!("search '{}'", query.replace('\'', "'\\''")))
+}
+
+/// Install a Flatpak application.
+#[tauri::command]
+fn app_install(app_id: String) -> CommandResult {
+    app_manager(&format!("install '{}'", app_id.replace('\'', "'\\''")))
+}
+
+/// Remove a Flatpak application.
+#[tauri::command]
+fn app_remove(app_id: String) -> CommandResult {
+    app_manager(&format!("remove '{}'", app_id.replace('\'', "'\\''")))
+}
+
+/// List installed Flatpak applications.
+#[tauri::command]
+fn app_installed() -> CommandResult {
+    app_manager("installed")
+}
+
+/// Report Flatpak/Flathub readiness.
+#[tauri::command]
+fn app_status() -> CommandResult {
+    app_manager("status")
+}
+
+/// Add the Flathub remote (idempotent).
+#[tauri::command]
+fn app_flathub_setup() -> CommandResult {
+    app_manager("setup")
+}
+
 #[tauri::command]
 fn get_system_info() -> SystemInfo {
     let mut sys = System::new_all();
@@ -235,6 +287,13 @@ pub fn run() {
             system_locale,
             heritage_theme,
             get_localization_status,
+            app_catalog,
+            app_search,
+            app_install,
+            app_remove,
+            app_installed,
+            app_status,
+            app_flathub_setup,
             get_system_info,
             get_logs,
             agent_status

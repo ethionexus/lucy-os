@@ -1,0 +1,26 @@
+[Unit]
+Description=Lucy OS Flatpak/Flathub first-boot setup
+Documentation=man:flatpak(1)
+# Needs working DNS to reach dl.flathub.org. Never block the boot if offline;
+# the script itself is a no-op on failure and retries next boot.
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/lucy-flatpak-init
+# Never let a network hiccup fail the boot.
+SuccessExitStatus=0 1
+StandardOutput=journal
+StandardError=journal
+
+# The remote lives in /var/lib/flatpak, the marker in /var/lib/lucy.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ReadWritePaths=/var/lib/flatpak /var/lib/lucy
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,81 @@
+#!/bin/bash
+# Fake `flatpak` for exercising lucy-flatpak-init and lucy-app-manager without
+# a real Flatpak install. State is kept in $FAKE_FLATPAK_STATE.
+#
+# Used by scripts/test-app-manager.sh. Not shipped in the ISO.
+set -uo pipefail
+STATE="${FAKE_FLATPAK_STATE:?FAKE_FLATPAK_STATE must be set}"
+mkdir -p "$STATE"
+REMOTES="$STATE/remotes"
+INSTALLED="$STATE/installed"
+touch "$REMOTES" "$INSTALLED"
+
+cmd="${1:-}"; shift || true
+
+case "$cmd" in
+  --version)
+    echo "Flatpak 1.18.4"
+    ;;
+  remotes)
+    cat "$REMOTES"
+    ;;
+  remote-add)
+    name=""; url=""
+    for a in "$@"; do
+      case "$a" in
+        --*) ;;
+        *) if [ -z "$name" ]; then name="$a"; else url="$a"; fi ;;
+      esac
+    done
+    if [ -z "$name" ]; then echo "remote-add: missing name" >&2; exit 1; fi
+    if grep -qx "$name" "$REMOTES" 2>/dev/null; then
+      case " $* " in *" --if-not-exists "*) exit 0 ;; *) exit 1 ;; esac
+    fi
+    echo "$name" >> "$REMOTES"
+    echo "Added remote $name ($url)"
+    ;;
+  list)
+    while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      app="${line%%|*}"
+      rest="${line#*|}"
+      name="${rest%%|*}"
+      ver="${rest#*|}"
+      printf '%s\t%s\t%s\tstable\tflathub\n' "$app" "$name" "$ver"
+    done < "$INSTALLED"
+    ;;
+  uninstall)
+    ref=""
+    for a in "$@"; do case "$a" in --*) ;; *) ref="$a" ;; esac; done
+    if grep -q "^${ref}|" "$INSTALLED" 2>/dev/null; then
+      grep -v "^${ref}|" "$INSTALLED" > "$INSTALLED.tmp" && mv "$INSTALLED.tmp" "$INSTALLED"
+      echo "Uninstalled $ref"
+    else
+      echo "error: $ref is not installed" >&2
+      exit 1
+    fi
+    ;;
+  install)
+    ref=""
+    for a in "$@"; do case "$a" in --*|flathub) ;; *) ref="$a" ;; esac; done
+    if [ -z "$ref" ]; then echo "install: missing ref" >&2; exit 1; fi
+    echo "${ref}|${ref##*.}|1.0" >> "$INSTALLED"
+    echo "Installed $ref"
+    ;;
+  search)
+    query=""
+    for a in "$@"; do case "$a" in --*) ;; *) query="$a" ;; esac; done
+    if [ "$query" = "spotify" ]; then
+      printf 'Spotify\tcom.spotify.Client\t1.2\tMusic for everyone\n'
+    else
+      printf 'SomeApp\torg.example.SomeApp\t1.0\tA sample result\n'
+    fi
+    ;;
+  update)
+    echo "Nothing to do"
+    ;;
+  *)
+    echo "fake-flatpak: unknown command '$cmd'" >&2
+    exit 2
+    ;;
+esac

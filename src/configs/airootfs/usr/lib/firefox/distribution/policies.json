@@ -1,0 +1,13 @@
+{
+  "policies": {
+    "Preferences": {
+      "gfx.webrender.all": { "Value": true, "Status": "default" },
+      "gfx.webrender.enabled": { "Value": true, "Status": "default" },
+      "media.ffmpeg.vaapi.enabled": { "Value": true, "Status": "default" },
+      "media.hardware-video-decoding.enabled": { "Value": true, "Status": "default" },
+      "media.hardware-video-decoding.force-enabled": { "Value": true, "Status": "default" },
+      "widget.dmabuf.force-enabled": { "Value": true, "Status": "default" },
+      "layers.acceleration.force-enabled": { "Value": true, "Status": "default" }
+    }
+  }
+}

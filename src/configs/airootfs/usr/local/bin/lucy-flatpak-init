@@ -1,0 +1,89 @@
+#!/bin/bash
+# Lucy OS Flatpak/Flathub first-boot initialisation.
+#
+# Adds the Flathub remote once, idempotently. Safe to run on every boot:
+#   * --if-not-exists makes the remote-add a no-op when already configured
+#   * a marker file is written only on success, so an offline first boot
+#     simply retries on the next boot
+#   * the script never fails the boot; it exits 0 with a warning instead
+#
+# Usage:
+#   lucy-flatpak-init          # add Flathub if needed (idempotent)
+#   lucy-flatpak-init --force  # ignore the marker and re-check
+#   lucy-flatpak-init --status # report readiness only
+
+set -uo pipefail
+
+REMOTE_NAME="flathub"
+REMOTE_URL="https://dl.flathub.org/repo/flathub.flatpakrepo"
+# Overridable so the script can be exercised in tests without touching /var.
+STATE_DIR="${LUCY_STATE_DIR:-/var/lib/lucy}"
+MARKER="$STATE_DIR/flatpak-init.done"
+LOG_TAG="lucy-flatpak-init"
+
+log() { printf '%s: %s\n' "$LOG_TAG" "$*"; }
+warn() { printf '%s: %s\n' "$LOG_TAG" "$*" >&2; }
+
+have_flatpak() {
+    command -v flatpak >/dev/null 2>&1
+}
+
+remote_configured() {
+    flatpak remotes --columns=name 2>/dev/null | grep -qx "$REMOTE_NAME"
+}
+
+report_status() {
+    if ! have_flatpak; then
+        log "flatpak: not installed"
+        return 1
+    fi
+    log "flatpak: $(flatpak --version 2>/dev/null || echo unknown)"
+    if remote_configured; then
+        log "remote '$REMOTE_NAME': configured"
+        return 0
+    fi
+    log "remote '$REMOTE_NAME': missing"
+    return 1
+}
+
+main() {
+    local force=0
+    case "${1:-}" in
+        --status) report_status; exit $? ;;
+        --force)  force=1 ;;
+    esac
+
+    if ! have_flatpak; then
+        warn "flatpak is not installed; skipping Flathub setup"
+        return 0
+    fi
+
+    if [ "$force" -eq 0 ] && [ -f "$MARKER" ] && remote_configured; then
+        log "already initialised (marker present)"
+        return 0
+    fi
+
+    if remote_configured; then
+        log "remote '$REMOTE_NAME' already present"
+    else
+        log "adding remote '$REMOTE_NAME'"
+        # --if-not-exists keeps this idempotent even under a race.
+        if ! flatpak remote-add --if-not-exists --system "$REMOTE_NAME" "$REMOTE_URL"; then
+            warn "could not add '$REMOTE_NAME' (offline?); will retry next boot"
+            return 0
+        fi
+    fi
+
+    # Best-effort metadata refresh so the first app search is useful.
+    flatpak update --appstream --system >/dev/null 2>&1 || \
+        warn "appstream refresh skipped (offline?)"
+
+    if remote_configured; then
+        mkdir -p "$STATE_DIR"
+        date -u +"%Y-%m-%dT%H:%M:%SZ" > "$MARKER"
+        log "Flathub ready"
+    fi
+    return 0
+}
+
+main "$@"

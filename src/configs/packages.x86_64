@@ -82,6 +82,27 @@ bluez-utils
 # VPN / proxy engine (sing-box, Clash API for the GUI widget)
 sing-box
 
+# Flatpak / Flathub integration (v0.4.0)
+# flatpak pulls bubblewrap + ostree; the portals let sandboxed apps reach the
+# desktop (file pickers, notifications, URL opening under openbox/LXDE).
+flatpak
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+xdg-user-dirs
+
+# Hardware video acceleration (Firefox VA-API, Celluloid/mpv)
+# mesa already ships the Radeon VA-API driver; Intel Gen8+ needs the media
+# driver, and libva/libvdpau are the runtime + diagnostics.
+libva
+libva-utils
+libvdpau
+intel-media-driver
+
+# Core pre-installed applications (v0.4.0)
+firefox
+code
+celluloid
+
 # Boot loader
 syslinux
 mtools

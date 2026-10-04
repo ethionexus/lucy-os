@@ -1,0 +1,301 @@
+{
+  "version": 1,
+  "remote_name": "flathub",
+  "remote_url": "https://dl.flathub.org/repo/flathub.flatpakrepo",
+  "apps": [
+    {
+      "id": "org.mozilla.firefox",
+      "name": "Firefox",
+      "category": "browser",
+      "description": "Fast, private browser with hardware acceleration enabled out of the box.",
+      "kind": "native",
+      "native_package": "firefox",
+      "core": true,
+      "homepage": "https://www.mozilla.org/firefox/"
+    },
+    {
+      "id": "chromium",
+      "name": "Chromium",
+      "category": "browser",
+      "description": "Lucy dark start page and system integration built in.",
+      "kind": "native",
+      "native_package": "chromium",
+      "core": true,
+      "homepage": "https://www.chromium.org/"
+    },
+    {
+      "id": "code",
+      "name": "Code (OSS)",
+      "category": "development",
+      "description": "Open-source build of VS Code for editing and light development.",
+      "kind": "native",
+      "native_package": "code",
+      "core": true,
+      "homepage": "https://github.com/microsoft/vscode"
+    },
+    {
+      "id": "celluloid",
+      "name": "Celluloid",
+      "category": "media",
+      "description": "Simple GTK front-end for mpv with hardware video decoding.",
+      "kind": "native",
+      "native_package": "celluloid",
+      "core": true,
+      "homepage": "https://celluloid-player.github.io/"
+    },
+    {
+      "id": "mpv",
+      "name": "mpv",
+      "category": "media",
+      "description": "Powerful command-line and windowed media player, also powers the live wallpaper.",
+      "kind": "native",
+      "native_package": "mpv",
+      "core": true,
+      "homepage": "https://mpv.io/"
+    },
+    {
+      "id": "alacritty",
+      "name": "Alacritty",
+      "category": "system",
+      "description": "GPU-accelerated terminal hosting the Lucy AI shell.",
+      "kind": "native",
+      "native_package": "alacritty",
+      "core": true,
+      "homepage": "https://alacritty.org/"
+    },
+    {
+      "id": "thunar",
+      "name": "Thunar Files",
+      "category": "system",
+      "description": "Fast file manager with archive and device integration.",
+      "kind": "native",
+      "native_package": "thunar",
+      "core": true,
+      "homepage": "https://docs.xfce.org/xfce/thunar/start"
+    },
+    {
+      "id": "com.brave.Browser",
+      "name": "Brave",
+      "category": "browser",
+      "description": "Privacy-first browser with built-in ad and tracker blocking.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.vscodium.codium",
+      "name": "VSCodium",
+      "category": "development",
+      "description": "Telemetry-free binary distribution of VS Code.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.jetbrains.IntelliJ-IDEA-Community",
+      "name": "IntelliJ IDEA Community",
+      "category": "development",
+      "description": "Full-featured IDE for JVM and polyglot development.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.videolan.VLC",
+      "name": "VLC",
+      "category": "media",
+      "description": "Plays virtually every format without extra codecs.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.spotify.Client",
+      "name": "Spotify",
+      "category": "media",
+      "description": "Music and podcast streaming client.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.github.taiko2k.tauonmb",
+      "name": "Tauon Music Box",
+      "category": "media",
+      "description": "Modern player for large local music libraries.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.audacityteam.Audacity",
+      "name": "Audacity",
+      "category": "media",
+      "description": "Multi-track audio editor and recorder.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.obsproject.Studio",
+      "name": "OBS Studio",
+      "category": "media",
+      "description": "Recording and live streaming studio.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "fr.handbrake.ghb",
+      "name": "HandBrake",
+      "category": "media",
+      "description": "Video transcoder for converting between formats.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.gimp.GIMP",
+      "name": "GIMP",
+      "category": "graphics",
+      "description": "Raster image editor for photo retouching and art.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.inkscape.Inkscape",
+      "name": "Inkscape",
+      "category": "graphics",
+      "description": "Vector graphics editor for SVG illustration.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.kde.krita",
+      "name": "Krita",
+      "category": "graphics",
+      "description": "Digital painting and illustration studio.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.blender.Blender",
+      "name": "Blender",
+      "category": "graphics",
+      "description": "3D creation suite for modelling, animation and rendering.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.libreoffice.LibreOffice",
+      "name": "LibreOffice",
+      "category": "office",
+      "description": "Complete office suite: documents, spreadsheets and slides.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.onlyoffice.desktopeditors",
+      "name": "ONLYOFFICE",
+      "category": "office",
+      "description": "Office suite with high compatibility for Microsoft formats.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "md.obsidian.Obsidian",
+      "name": "Obsidian",
+      "category": "productivity",
+      "description": "Local-first Markdown knowledge base.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.telegram.desktop",
+      "name": "Telegram Desktop",
+      "category": "communication",
+      "description": "Fast, cloud-synced messaging client.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.signal.Signal",
+      "name": "Signal",
+      "category": "communication",
+      "description": "End-to-end encrypted messaging and calls.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.discordapp.Discord",
+      "name": "Discord",
+      "category": "communication",
+      "description": "Voice, video and text chat for communities.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.mozilla.Thunderbird",
+      "name": "Thunderbird",
+      "category": "communication",
+      "description": "Email, calendar and news client.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.qbittorrent.qBittorrent",
+      "name": "qBittorrent",
+      "category": "network",
+      "description": "Feature-rich BitTorrent client with no ads.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.transmissionbt.Transmission",
+      "name": "Transmission",
+      "category": "network",
+      "description": "Lightweight BitTorrent client.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.usebottles.bottles",
+      "name": "Bottles",
+      "category": "utility",
+      "description": "Run Windows software with managed Wine prefixes.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.bitwarden.desktop",
+      "name": "Bitwarden",
+      "category": "utility",
+      "description": "Open-source password manager.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.gnome.Calculator",
+      "name": "Calculator",
+      "category": "utility",
+      "description": "Simple, accurate GNOME calculator.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "org.gnome.Loupe",
+      "name": "Image Viewer",
+      "category": "utility",
+      "description": "Fast GNOME image viewer.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "com.github.tchx84.Flatseal",
+      "name": "Flatseal",
+      "category": "utility",
+      "description": "Inspect and edit Flatpak application permissions.",
+      "kind": "flatpak",
+      "core": false
+    },
+    {
+      "id": "io.github.flattool.Warehouse",
+      "name": "Warehouse",
+      "category": "utility",
+      "description": "Manage installed Flatpaks, remotes and leftover data.",
+      "kind": "flatpak",
+      "core": false
+    }
+  ]
+}

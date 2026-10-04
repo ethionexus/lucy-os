@@ -1,0 +1,54 @@
+#!/bin/bash
+# Lucy OS App Manager - Flatpak/Flathub front-end.
+#
+# Thin launcher around the lucy_agent.appstore module. The module is stdlib
+# only, so it can run straight from its source file if the package has not
+# been pip-installed into site-packages yet.
+#
+# Usage:
+#   lucy-app-manager list
+#   lucy-app-manager search spotify
+#   lucy-app-manager install com.spotify.Client
+#   lucy-app-manager remove  com.spotify.Client
+#   lucy-app-manager installed
+#   lucy-app-manager status
+#   lucy-app-manager setup      # add the Flathub remote
+
+set -uo pipefail
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "lucy-app-manager: python3 is required" >&2
+    exit 127
+fi
+
+# Pick the first interpreter that can actually import the module. This
+# tolerates hosts where only `python` exists, or where `python3` is a stub
+# that cannot see the package.
+for PY in python3 python; do
+    if command -v "$PY" >/dev/null 2>&1 && \
+       "$PY" -c "import lucy_agent.appstore" >/dev/null 2>&1; then
+        exec "$PY" -m lucy_agent.appstore "$@"
+    fi
+done
+
+# Fall back to a source checkout / wheel-injected copy, running the file
+# directly (appstore.py is stdlib-only and has no package-relative imports).
+for PY in python3 python; do
+    command -v "$PY" >/dev/null 2>&1 || continue
+    for candidate in \
+        /opt/lucy/lucy_agent/appstore.py \
+        /usr/lib/python3*/site-packages/lucy_agent/appstore.py \
+        /usr/lib/python3*/dist-packages/lucy_agent/appstore.py \
+        /usr/local/lib/python3*/site-packages/lucy_agent/appstore.py
+    do
+        for resolved in $candidate; do
+            if [ -f "$resolved" ]; then
+                exec "$PY" "$resolved" "$@"
+            fi
+        done
+    done
+done
+
+echo "lucy-app-manager: could not locate the lucy_agent.appstore module" >&2
+echo "Try reinstalling the lucy-agent package." >&2
+exit 1

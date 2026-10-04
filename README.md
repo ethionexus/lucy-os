@@ -296,6 +296,85 @@ unsupported code is stripped and ignored rather than erroring, so a typo can
 never break a command. Set a session default with `ai_language` under `[ai]`
 in `agent.conf`.
 
+## v0.4.0 — Phase 1: Essential Apps & Flatpak
+
+### Flatpak & Flathub
+
+`flatpak` plus the XDG desktop portals ship in the ISO, so sandboxed apps can
+reach the desktop (file pickers, notifications, URL opening) under
+openbox/LXDE:
+
+```
+flatpak
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+xdg-user-dirs
+```
+
+The Flathub remote is configured on first boot by
+`lucy-flatpak-init.service` → `/usr/local/bin/lucy-flatpak-init`:
+
+```bash
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+```
+
+The service is deliberately forgiving: `--if-not-exists` makes it idempotent,
+a success marker (`/var/lib/lucy/flatpak-init.done`) prevents needless work on
+later boots, and an offline first boot simply retries next time without ever
+failing the boot.
+
+### Core pre-installed applications
+
+| Role | App | Source |
+| --- | --- | --- |
+| Browser | Firefox (VA-API enabled), Chromium | `extra` |
+| Editor | Code (OSS) | `extra` |
+| Media | Celluloid, mpv | `extra` |
+| Terminal | Alacritty (Lucy AI shell), lxterminal | `extra` |
+| Files | Thunar | `extra` |
+| Monitor | Lucy System Monitor | built in |
+
+Hardware acceleration is enabled for both browsers:
+
+- Firefox — `/usr/lib/firefox/distribution/policies.json` turns on WebRender,
+  VA-API and DMA-BUF by default (users can still override).
+- Chromium — `/etc/chromium-flags.conf` enables GPU rasterisation and VA-API
+  decode.
+
+Supporting VA-API packages: `libva`, `libva-utils`, `libvdpau`,
+`intel-media-driver` (`mesa` already provides the Radeon VA-API driver).
+
+### Lucy App Manager
+
+A lightweight Flatpak/Flathub front-end. The core is pure standard library, so
+it runs even when the heavier AI dependencies are absent.
+
+```bash
+lucy-app-manager list                 # curated catalog
+lucy-app-manager search spotify       # catalog + Flathub
+lucy-app-manager install com.spotify.Client
+lucy-app-manager remove  com.spotify.Client
+lucy-app-manager installed
+lucy-app-manager status
+lucy-app-manager setup                # add Flathub (idempotent)
+```
+
+Add `--json` anywhere for machine-readable output. The Tauri layer exposes
+`app_catalog`, `app_search`, `app_install`, `app_remove`, `app_installed`,
+`app_status` and `app_flathub_setup`.
+
+The catalog lives at `/etc/lucy/apps.json`: 35 apps, 7 of them core native
+packages and the rest recommended Flatpaks (Brave, VSCodium, VLC, GIMP,
+LibreOffice, Spotify, OBS, Krita and more).
+
+### Verification
+
+```bash
+python scripts/verify-app-configs.py   # config only, no Flatpak needed
+bash   scripts/test-app-manager.sh     # functional, uses a fake flatpak
+cd src/core/python && pytest tests     # 56 tests
+```
+
 ## License
 
 MIT License - See LICENSE file for details
