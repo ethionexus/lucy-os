@@ -1,0 +1,17 @@
+[Unit]
+Description=Lucy OS Offline Semantic File Indexer
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+# Runs as the logged-in user so it indexes the user's home.
+ExecStart=/usr/bin/python3 -m lucy_agent.search_daemon
+Restart=on-failure
+RestartSec=30
+# Keep the indexer light: it self-throttles to ≤5% CPU.
+Nice=19
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=graphical-session.target

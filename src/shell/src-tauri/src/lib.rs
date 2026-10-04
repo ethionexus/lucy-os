@@ -97,6 +97,20 @@ fn system_action(action: String) -> CommandResult {
     execute_command(cmd.to_string())
 }
 
+/// Semantic search over the local offline file index.
+#[tauri::command]
+fn search_files(query: String, top_k: Option<u32>) -> CommandResult {
+    // Delegate to the Python indexer via its JSON CLI (keeps the Tauri
+    // binary free of Python/embedding dependencies).
+    let k = top_k.unwrap_or(5);
+    let escaped = query.replace('\'', "'\\''");
+    let cmd = format!(
+        "python3 -c \"from lucy_agent import search; import json; print(json.dumps(search.search_files('{}', {})))\"",
+        escaped, k
+    );
+    execute_command(cmd)
+}
+
 #[tauri::command]
 fn get_system_info() -> SystemInfo {
     let mut sys = System::new_all();
@@ -141,6 +155,7 @@ pub fn run() {
             execute_command,
             launch_app,
             system_action,
+            search_files,
             get_system_info,
             get_logs,
             agent_status
