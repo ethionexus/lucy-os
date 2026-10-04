@@ -107,6 +107,13 @@ celluloid
 syslinux
 mtools
 
+# Initramfs hooks for live-media boot (v0.4.0)
+# archiso does NOT depend on mkinitcpio-archiso, so it must be listed
+# explicitly or the initramfs has no archiso hook and the ISO fails to boot
+# with "[FAILED] Failed to start Switch Root".
+mkinitcpio
+mkinitcpio-archiso
+
 # Tauri dependencies
 gtk3
 gdk-pixbuf2

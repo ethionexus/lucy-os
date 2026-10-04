@@ -37,6 +37,12 @@ APP_MANAGER = AIROOTFS / "usr" / "local" / "bin" / "lucy-app-manager"
 UNIT = AIROOTFS / "etc" / "systemd" / "system" / "lucy-flatpak-init.service"
 PACKAGES = REPO / "src" / "configs" / "packages.x86_64"
 
+PROFILEDEF = REPO / "src" / "configs" / "profiledef.sh"
+MKINITCPIO_DROPIN = AIROOTFS / "etc" / "mkinitcpio.conf.d" / "archiso.conf"
+FSTAB = AIROOTFS / "etc" / "fstab"
+SYSLINUX_CFG = REPO / "src" / "configs" / "syslinux" / "syslinux.cfg"
+EFIBOOT_ENTRIES = REPO / "src" / "configs" / "efiboot" / "loader" / "entries"
+
 # reverse-DNS, at least three dot-separated labels. Flathub does allow short
 # ids in rare cases, so only the clearly-wrong shapes are rejected.
 REVERSE_DNS = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9_-]+$")
@@ -261,12 +267,116 @@ def check_unit() -> None:
             fail(f"unit missing {needle!r}")
 
 
+def check_boot_config() -> None:
+    """Guards against the initramfs/bootloader problems that stop an ISO boot.
+
+    The signature failure this catches is a missing `archiso` initcpio hook,
+    which produces "[FAILED] Failed to start Switch Root" and drops the user
+    into emergency mode.
+    """
+    print("=== boot: initramfs hooks ===")
+
+    if not MKINITCPIO_DROPIN.is_file():
+        fail("etc/mkinitcpio.conf.d/archiso.conf is missing (ISO will not boot)")
+        return
+
+    text = MKINITCPIO_DROPIN.read_text(encoding="utf-8")
+    line = next((l for l in text.splitlines()
+                 if l.strip().startswith("HOOKS=")), "")
+    if not line:
+        fail("archiso.conf has no HOOKS= line")
+        return
+
+    raw = line.split("(", 1)[-1].split(")", 1)[0]
+    hooks = raw.split()
+    ok(f"initramfs hooks: {' '.join(hooks)}")
+
+    for required in ("archiso", "archiso_loop_mnt"):
+        if required not in hooks:
+            fail(f"required initcpio hook {required!r} is missing")
+        else:
+            ok(f"hook {required} present")
+
+    def pos(name: str) -> int:
+        return hooks.index(name) if name in hooks else -1
+
+    # archiso/archiso_loop_mnt create the live root device, so they must come
+    # before the hooks that mount it.
+    if pos("archiso_loop_mnt") != -1 and pos("block") != -1 and pos("archiso_loop_mnt") < pos("block"):
+        ok("archiso hooks ordered before 'block'")
+    else:
+        fail("archiso/archiso_loop_mnt must come before the 'block' hook")
+
+    if pos("filesystems") == -1:
+        fail("the 'filesystems' hook is missing")
+    elif pos("block") != -1 and pos("block") < pos("filesystems"):
+        ok("'block' ordered before 'filesystems'")
+    else:
+        fail("'block' must come before 'filesystems'")
+
+    # The hook implementation ships in mkinitcpio-archiso, which archiso does
+    # not depend on, so it must be an explicit package.
+    pkgs = {
+        ln.strip() for ln in PACKAGES.read_text(encoding="utf-8").splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    }
+    if "mkinitcpio-archiso" in pkgs:
+        ok("mkinitcpio-archiso is in packages.x86_64")
+    else:
+        fail("mkinitcpio-archiso is not in packages.x86_64 (archiso hook would be missing)")
+    if "mkinitcpio" in pkgs:
+        ok("mkinitcpio is in packages.x86_64")
+
+    print("=== boot: fstab and bootloader label ===")
+
+    # A live ISO must not carry a static fstab with disk UUIDs.
+    if not FSTAB.is_file():
+        ok("no airootfs/etc/fstab (correct for live media)")
+    else:
+        body = [
+            l.strip() for l in FSTAB.read_text(encoding="utf-8").splitlines()
+            if l.strip() and not l.strip().startswith("#")
+        ]
+        uuid_lines = [l for l in body if "UUID=" in l]
+        if not body:
+            ok("airootfs/etc/fstab is empty")
+        elif uuid_lines:
+            fail(f"airootfs/etc/fstab has static UUID mounts: {uuid_lines[:3]}")
+        else:
+            note(f"airootfs/etc/fstab has {len(body)} entry(ies)")
+
+    # The bootloaders use %ARCHISO_LABEL%, which archiso substitutes with
+    # iso_label; if the placeholder is dropped the label never matches.
+    pd = PROFILEDEF.read_text(encoding="utf-8")
+    label = ""
+    for ln in pd.splitlines():
+        if ln.strip().startswith("iso_label="):
+            label = ln.split("=", 1)[1].strip().strip('"').strip("'")
+    if label:
+        ok(f"profiledef iso_label = {label!r}")
+    else:
+        fail("profiledef.sh has no iso_label")
+
+    for cfg in [SYSLINUX_CFG, *sorted(EFIBOOT_ENTRIES.glob("*.conf"))]:
+        if not cfg.is_file():
+            fail(f"missing bootloader config {cfg.name}")
+            continue
+        body = cfg.read_text(encoding="utf-8")
+        if "%ARCHISO_LABEL%" not in body:
+            fail(f"{cfg.name} does not use %ARCHISO_LABEL% (label would not match)")
+        elif "%INSTALL_DIR%" not in body or "%ARCHISO_UUID%" not in body:
+            fail(f"{cfg.name} is missing %INSTALL_DIR%/%ARCHISO_UUID%")
+        else:
+            ok(f"{cfg.name} uses the archiso boot placeholders")
+
+
 def main() -> int:
     print("Lucy OS v0.4.0 Phase 1 — app/Flatpak configuration verification\n")
     check_catalog()
     check_packages()
     check_browser_configs()
     check_overlay_hook()
+    check_boot_config()
     check_scripts()
     check_unit()
 

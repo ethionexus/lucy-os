@@ -48,4 +48,36 @@ if [ -f "$OVERLAY/chromium-flags.conf" ]; then
     install -m 0644 "$OVERLAY/chromium-flags.conf" /etc/chromium-flags.conf
 fi
 
+# --- initramfs ------------------------------------------------------------
+# archiso does not run mkinitcpio; it copies /boot from this root onto the
+# ISO. Rebuild here so the archiso hooks are guaranteed to be included, and
+# fail the build loudly if they are not — a missing archiso hook produces an
+# ISO that boots straight into "Failed to start Switch Root" emergency mode.
+if ! [ -f /etc/mkinitcpio.conf.d/archiso.conf ]; then
+    echo "lucy-customize: ERROR: /etc/mkinitcpio.conf.d/archiso.conf is missing" >&2
+    exit 1
+fi
+
+if command -v mkinitcpio >/dev/null 2>&1; then
+    log "rebuilding initramfs (this proves the archiso hooks resolve)"
+    # mkinitcpio exits non-zero if any hook in HOOKS cannot be found, so a
+    # successful run already means archiso/archiso_loop_mnt were available.
+    mkinitcpio -P
+
+    if command -v lsinitcpio >/dev/null 2>&1; then
+        for img in /boot/initramfs-*.img; do
+            [ -e "$img" ] || continue
+            if lsinitcpio "$img" 2>/dev/null | grep -q '^hooks/archiso$'; then
+                log "verified: archiso hook present in $(basename "$img")"
+            else
+                echo "lucy-customize: ERROR: archiso hook missing from $img" >&2
+                exit 1
+            fi
+        done
+    fi
+else
+    echo "lucy-customize: ERROR: mkinitcpio not found" >&2
+    exit 1
+fi
+
 log "overlay applied"

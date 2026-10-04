@@ -587,6 +587,47 @@ Safe locations (no package ships these): `/etc/lucy/`, `/usr/local/bin/`,
 Note: `customize_airootfs.sh` is *deprecated* in archiso but still executed;
 it is deleted after running so it never ships in the ISO.
 
+### CRITICAL: the initramfs must contain the archiso hook
+
+An archiso ISO boots with **no `root=` kernel parameter**. The `archiso`
+initcpio hook finds the live medium and `archiso_loop_mnt` loop-mounts the
+airootfs squashfs. Without them, boot dies at:
+
+```
+[FAILED] Failed to start Switch Root
+You are in emergency mode
+```
+
+Required (both present in this profile):
+
+1. `airootfs/etc/mkinitcpio.conf.d/archiso.conf` (drop-in for
+   `/etc/mkinitcpio.conf`):
+
+   ```
+   HOOKS=(base udev modconf kms archiso archiso_loop_mnt block filesystems keyboard)
+   ```
+
+   `archiso`/`archiso_loop_mnt` must precede `block` and `filesystems`.
+   The upstream `archiso_pxe_*` hooks are omitted on purpose: they need
+   `mkinitcpio-nfs-utils`/`nbd`, which are not installed, and a missing hook
+   makes mkinitcpio fail.
+
+2. `mkinitcpio-archiso` in `packages.x86_64`. The `archiso` package does
+   **not** depend on it — it must be listed explicitly.
+
+archiso does not run mkinitcpio itself; it copies `/boot` from the build root
+onto the ISO. `customize_airootfs.sh` therefore runs `mkinitcpio -P` and then
+asserts `hooks/archiso` is inside every `/boot/initramfs-*.img`, failing the
+build otherwise. Do not remove that check — it is what makes this class of
+boot failure impossible to ship silently.
+
+Bootloader label: entries use `%ARCHISO_LABEL%` / `%INSTALL_DIR%` /
+`%ARCHISO_UUID%`, substituted by archiso from `profiledef.sh`
+(`iso_label="LUCYOS"`). Never hardcode the label. Do **not** add
+`airootfs/etc/fstab` — a live ISO must not have static disk UUID mounts.
+
+`scripts/verify-app-configs.py::check_boot_config()` guards all of this.
+
 ### Modifying Archiso Profile
 
 1. Edit `src/configs/profiledef.sh` for metadata

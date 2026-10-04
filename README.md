@@ -401,6 +401,45 @@ bash   scripts/test-app-manager.sh     # functional, uses a fake flatpak
 cd src/core/python && pytest tests     # 56 tests
 ```
 
+### Boot requirements (initramfs)
+
+An archiso live ISO does **not** use a `root=` kernel parameter. The
+`archiso` initcpio hook locates the medium (by label or UUID) and
+`archiso_loop_mnt` loop-mounts the airootfs squashfs. Without those hooks the
+initramfs has no root to switch to and boot stops at:
+
+```
+[FAILED] Failed to start Switch Root
+You are in emergency mode
+```
+
+Two things are required, and both live in this profile:
+
+1. `airootfs/etc/mkinitcpio.conf.d/archiso.conf` — a drop-in for
+   `/etc/mkinitcpio.conf`:
+
+   ```
+   HOOKS=(base udev modconf kms archiso archiso_loop_mnt block filesystems keyboard)
+   ```
+
+   `archiso` and `archiso_loop_mnt` must come **before** `block` and
+   `filesystems`. The PXE hooks from the upstream profile are omitted because
+   they need `mkinitcpio-nfs-utils`/`nbd`, which Lucy OS does not ship.
+
+2. `mkinitcpio-archiso` in `packages.x86_64`. The `archiso` package does
+   **not** depend on it, so it has to be explicit.
+
+archiso never runs mkinitcpio itself — it copies `/boot` from the build root
+onto the ISO — so `customize_airootfs.sh` rebuilds the initramfs and asserts
+the `archiso` hook is inside it, failing the build otherwise.
+
+The bootloader entries use `%ARCHISO_LABEL%`, `%INSTALL_DIR%` and
+`%ARCHISO_UUID%`, which archiso substitutes from `profiledef.sh`
+(`iso_label="LUCYOS"`). There is deliberately no `airootfs/etc/fstab`: a live
+ISO must not carry static disk UUID mounts.
+
+`scripts/verify-app-configs.py` checks all of the above on every run.
+
 ## License
 
 MIT License - See LICENSE file for details
