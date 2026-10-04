@@ -80,4 +80,17 @@ else
     exit 1
 fi
 
+# --- OS installer ---------------------------------------------------------
+# `calamares` lives in the AUR, not the official repos, so it must NOT be in
+# packages.x86_64 (pacstrap would abort with "target not found"). Probe it
+# best-effort so a future move into [extra] is picked up automatically, and
+# never fail the build over it. archinstall is the guaranteed fallback.
+if pacman -Si calamares >/dev/null 2>&1; then
+    log "installing Calamares from the official repos"
+    pacman -S --noconfirm --needed calamares || \
+        printf 'lucy-customize: warning: calamares install failed; continuing\n' >&2
+else
+    log "calamares is not in the official repos (AUR-only); graphical installer unavailable"
+fi
+
 log "overlay applied"

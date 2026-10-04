@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import Chat from "./components/Chat";
 import SystemMonitor from "./components/SystemMonitor";
 import LogViewer from "./components/LogViewer";
@@ -10,6 +11,8 @@ import TopBar from "./components/TopBar";
 import ControlCenter from "./components/ControlCenter";
 import Flow from "./components/Flow";
 import Settings from "./components/Settings";
+import CommandPalette from "./components/CommandPalette";
+import AppStore from "./components/AppStore";
 import "./shell.css";
 
 interface SystemInfo {
@@ -21,13 +24,18 @@ interface SystemInfo {
   process_count: number;
 }
 
+type Tab = "chat" | "store" | "monitor" | "logs" | "flow";
+
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
   const [controlCenter, setControlCenter] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [palette, setPalette] = useState(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
-  const [activeTab, setActiveTab] = useState<"chat" | "monitor" | "logs" | "flow">("chat");
+  const [activeTab, setActiveTab] = useState<Tab>("chat");
+
+  const openStore = () => setActiveTab("store");
 
   // Play the lucy-intro welcome experience on first launch. The flag is
   // kept in the webview's localStorage, so it persists across app restarts
@@ -57,6 +65,35 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Global Command Palette.
+  //
+  // Super+Space is registered as a real global shortcut in the Rust layer
+  // (src-tauri/src/lib.rs), so it works even when another window has focus.
+  // The in-app key handler is a fallback for when the global grab is
+  // unavailable (for example if the key is already taken).
+  const togglePalette = () => setPalette((v) => !v);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listen("lucy://toggle-palette", () => togglePalette())
+      .then((fn) => {
+        unlisten = fn;
+      })
+      .catch((e) => console.error("palette shortcut listener failed:", e));
+    return () => unlisten?.();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey && e.code === "Space") {
+        e.preventDefault();
+        setPalette((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <>
       {showSplash && <Splash onComplete={() => setShowSplash(false)} />}
@@ -72,6 +109,7 @@ function App() {
       <div className="app">
         <main className="main">
           {activeTab === "chat" && <Chat />}
+          {activeTab === "store" && <AppStore />}
           {activeTab === "monitor" && systemInfo && (
             <SystemMonitor info={systemInfo} />
           )}
@@ -85,6 +123,12 @@ function App() {
             onClick={() => setActiveTab("chat")}
           >
             Chat
+          </button>
+          <button
+            className={activeTab === "store" ? "active" : ""}
+            onClick={() => setActiveTab("store")}
+          >
+            App Store
           </button>
           <button
             className={activeTab === "monitor" ? "active" : ""}
@@ -107,9 +151,15 @@ function App() {
         </nav>
       </div>
 
-      <Dock />
+      <Dock onOpenPalette={togglePalette} onOpenStore={openStore} />
       <ControlCenter open={controlCenter} onClose={() => setControlCenter(false)} />
       {settings && <Settings onClose={() => setSettings(false)} />}
+      <CommandPalette
+        open={palette}
+        onClose={() => setPalette(false)}
+        onOpenStore={openStore}
+        onOpenSettings={() => setSettings(true)}
+      />
     </>
   );
 }

@@ -440,6 +440,69 @@ ISO must not carry static disk UUID mounts.
 
 `scripts/verify-app-configs.py` checks all of the above on every run.
 
+## v0.4.0 — Phase 2: Command Palette, App Store, Installer
+
+### Global Command Palette (Super+Space)
+
+A Spotlight-style overlay: instant app launch, in-shell actions, Lucy
+settings toggles, offline semantic file search and an AI fallback.
+
+| Piece | Where |
+| --- | --- |
+| Overlay UI | `src/shell/src/components/CommandPalette.tsx` |
+| Global shortcut | `src-tauri/src/lib.rs` — `tauri-plugin-global-shortcut`, `SUPER`+`Space` |
+| Event bridge | Rust emits `lucy://toggle-palette`; React listens and toggles |
+| AI fallback | `ai_translate` RPC → `lucy_agent.shell_wrapper` |
+
+The shortcut is a **real global hotkey**, so it works over any application.
+`Super+Space` is reserved for it — the window manager deliberately does not
+bind it, because two owners of the same key would fight. The Amharic layout
+toggle therefore moved to **`Super+Shift+Space`**.
+
+Type to filter apps; results include live semantic file hits (debounced
+250 ms) and, with `Ctrl`+`Enter`, an AI-suggested shell command you can run.
+
+### App Store
+
+`src/shell/src/components/AppStore.tsx` is the graphical view over all seven
+appstore RPCs (`app_catalog`, `app_search`, `app_install`, `app_remove`,
+`app_installed`, `app_status`, `app_flathub_setup`). It shows the curated
+catalog, category filters, install/remove, live Flatpak/Flathub status badges,
+an "Enable Flathub" button, and a "Search Flathub" action that merges
+Flathub-only hits into the grid. It degrades honestly when Flatpak is absent.
+
+### UI refinements
+
+Glassmorphic palette and store surfaces (blurred backdrops, gold accents),
+responsive breakpoints at 720 px and 480 px, and a
+`prefers-reduced-motion` guard.
+
+### Graphical OS installer
+
+**`calamares` is AUR-only — it cannot be listed in `packages.x86_64`.** Doing
+so makes pacstrap abort with `target not found` and breaks the whole ISO
+build, exactly like the earlier failures. So:
+
+- `customize_airootfs.sh` probes for Calamares **best-effort** (so it is
+  picked up automatically if it ever moves into the official repos) and never
+  fails the build.
+- `archinstall` (+ `btrfs-progs`, `dosfstools`, `efibootmgr`) **is** shipped,
+  so the medium always has a working installer.
+- `lucy-installer` prefers Calamares, falls back to archinstall, and otherwise
+  prints exact AUR instructions.
+- "**Install Lucy OS**" appears on the live desktop
+  (`etc/skel/Desktop/calamares.desktop`) and in the applications menu.
+
+Calamares configuration is complete in `airootfs/etc/calamares/`: branding,
+`partition.conf` with the Btrfs subvolume layout (including `/.snapshots`,
+which the Week 3 rollback engine requires), `mount.conf`, `unpackfs.conf`,
+`bootloader.conf`, `initcpiocfg.conf` and the postinstall step.
+
+**Critical:** the postinstall step removes the live medium's
+`/etc/mkinitcpio.conf.d/archiso.conf` from the target and rebuilds its
+initramfs. Without that the installed system inherits the `archiso` hook,
+has no live medium to find, and will not boot.
+
 ## License
 
 MIT License - See LICENSE file for details

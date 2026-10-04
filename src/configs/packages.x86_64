@@ -114,6 +114,16 @@ mtools
 mkinitcpio
 mkinitcpio-archiso
 
+# OS installer (v0.4.0 Phase 2)
+# NOTE: `calamares` is AUR-only and CANNOT be listed here — pacstrap would
+# abort with "target not found" and break the whole ISO build. It is probed
+# best-effort in customize_airootfs.sh. `archinstall` is the guaranteed
+# official installer and is what lucy-installer falls back to.
+archinstall
+btrfs-progs
+dosfstools
+efibootmgr
+
 # Tauri dependencies
 gtk3
 gdk-pixbuf2

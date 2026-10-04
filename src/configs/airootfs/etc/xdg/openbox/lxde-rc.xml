@@ -17,16 +17,20 @@
   </applications>
 
   <!--
-    Week 4 (optional Amharic/Ge'ez localization).
+    Keyboard bindings.
 
-    Super+Space flips the input layout between English (US) and the optional
-    Amharic (Ethiopic) layout. Both layouts stay in the group so Openbox's own
-    grp:alt_shift_toggle also works. Nothing here changes the default language:
-    English remains the system default and Amharic is never activated unless
-    the user presses this binding (or uses the TopBar / Settings toggle).
+    Super+Space is reserved for the Lucy Command Palette (registered as a
+    global shortcut by the Tauri shell — see src-tauri/src/lib.rs). It is
+    deliberately NOT bound here, because two owners of the same key would
+    fight over it.
+
+    Super+Shift+Space flips the input layout between English (US) and the
+    optional Amharic (Ethiopic) layout (Week 4). Both layouts stay in the
+    group so grp:alt_shift_toggle also works. English remains the system
+    default; Amharic is never activated unless the user asks for it.
   -->
   <keyboard>
-    <keybind key="Super+space">
+    <keybind key="Super+Shift+space">
       <action name="Execute">
         <command>/usr/local/bin/lucy-keyboard toggle</command>
         <startupnotify>

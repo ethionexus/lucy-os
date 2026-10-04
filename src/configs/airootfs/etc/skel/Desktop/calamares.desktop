@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Install Lucy OS
+Comment=Install Lucy OS to your hard drive (Btrfs subvolumes, snapshots ready)
+Exec=/usr/local/bin/lucy-installer
+Icon=calamares
+Terminal=false
+Categories=System;
+StartupNotify=true

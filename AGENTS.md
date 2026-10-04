@@ -628,6 +628,59 @@ Bootloader label: entries use `%ARCHISO_LABEL%` / `%INSTALL_DIR%` /
 
 `scripts/verify-app-configs.py::check_boot_config()` guards all of this.
 
+### v0.4.0 Phase 2: palette, app store, installer
+
+#### Super+Space ownership
+
+`Super+Space` belongs to the **command palette** and nothing else.
+
+- Registered as a real global shortcut in `src-tauri/src/lib.rs`
+  (`tauri-plugin-global-shortcut`, `Modifiers::SUPER` + `Code::Space`), so it
+  fires over any application, not just when the shell has focus.
+- Rust emits `lucy://toggle-palette`; `App.tsx` listens and toggles. The
+  event name is defined once in Rust (`PALETTE_EVENT`) and
+  `verify-app-configs.py` fails if the React side drifts from it.
+- The Amharic layout toggle moved to **`Super+Shift+Space`** in
+  `etc/xdg/openbox/lxde-rc.xml`. Do **not** re-bind `Super+space` in openbox:
+  two owners of the key fight, and the verifier fails the build.
+- A failed registration is only a warning; the in-app `keydown` handler is
+  the fallback.
+
+Palette: `src/shell/src/components/CommandPalette.tsx` (app launch, actions,
+settings toggles, debounced offline semantic search, `ai_translate` fallback).
+Store: `src/shell/src/components/AppStore.tsx` (all 7 appstore RPCs, with
+graceful degradation when Flatpak is missing).
+
+#### Installer: calamares is AUR-only
+
+**Never add `calamares` to `packages.x86_64`.** It is not in `[core]`/`[extra]`
+(verified against the Arch package API), so pacstrap aborts with
+`target not found` and the entire ISO build fails.
+
+- `customize_airootfs.sh` probes it best-effort with `pacman -Si calamares`
+  and installs it only if present. Truthful, and it cannot break the build.
+- `archinstall` is the shipped, working installer (plus `btrfs-progs`,
+  `dosfstools`, `efibootmgr`).
+- `lucy-installer` prefers `calamares`, falls back to `archinstall`, then
+  prints AUR instructions.
+
+Calamares config lives in `airootfs/etc/calamares/`: `settings.conf`,
+`branding/lucy/` and `modules/{partition,mount,unpackfs,bootloader,
+initcpiocfg,shellprocess-postinstall}.conf`.
+
+Two details that matter:
+
+1. `partition.conf` creates the `/.snapshots` Btrfs subvolume — the Week 3
+   rollback engine (`lucy_agent.snapshot`, `lucy-rollback`) requires it.
+2. `shellprocess-postinstall.conf` uses `dontChroot: true` (so `${ROOT}` paths
+   actually resolve) and **deletes `/etc/mkinitcpio.conf.d/archiso.conf` from
+   the target before rebuilding its initramfs**. The installed system has no
+   live medium: leaving the `archiso` hook in HOOKS makes it unbootable with
+   the same "Failed to start Switch Root" error the live ISO just had.
+
+The live desktop shortcut is `etc/skel/Desktop/calamares.desktop`
+("Install Lucy OS"); the postinstall removes it from the installed user.
+
 ### Modifying Archiso Profile
 
 1. Edit `src/configs/profiledef.sh` for metadata

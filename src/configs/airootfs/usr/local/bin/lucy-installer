@@ -1,24 +1,79 @@
 #!/bin/bash
 # Lucy OS installer launcher.
 #
-# Starts Calamares (when installed from the AUR) and, once the install
-# finishes, plays lucy-launch.mp4 as the smooth final transition into the
-# home screen before revealing the desktop.
+# Prefers the Calamares graphical installer and falls back to `archinstall`
+# (official repo, text UI) because Calamares is AUR-only and may not be
+# present on the medium. Never fails silently: if neither is available it
+# explains exactly what to do.
+#
+# Usage:  lucy-installer
+#
+# With Calamares, upon a successful install it plays lucy-launch.mp4 as the
+# transition into the desktop.
 
 set -uo pipefail
 
+LAUNCH="/usr/local/bin/lucy-launch"
+status=1
+
+as_root() {
+    # Live media normally runs the session as root with absent passwords; if
+    # we are not root, escalate.
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    elif command -v pkexec >/dev/null 2>&1; then
+        pkexec "$@"
+    else
+        sudo "$@"
+    fi
+}
+
+in_terminal() {
+    # archinstall is a text UI: it needs a real TTY.
+    local cmd="$1"
+    if command -v alacritty >/dev/null 2>&1; then
+        alacritty -e bash -lc "$cmd"
+    elif command -v lxterminal >/dev/null 2>&1; then
+        lxterminal -e "bash -lc '$cmd'"
+    else
+        bash -lc "$cmd"
+    fi
+}
+
 if command -v calamares >/dev/null 2>&1; then
-    pkexec /usr/bin/calamares "$@"
+    echo "lucy-installer: starting Calamares"
+    as_root /usr/bin/calamares "$@"
     status=$?
+
+elif command -v archinstall >/dev/null 2>&1; then
+    echo "lucy-installer: Calamares not found; starting archinstall"
+    echo "lucy-installer: tip — choose Btrfs and add a /.snapshots subvolume"
+    echo "                so Lucy OS snapshots and rollback work."
+    in_terminal "archinstall"
+    status=$?
+
 else
-    echo "lucy-installer: Calamares is not installed." >&2
-    echo "Install it from the AUR (yay -S calamares) to use the graphical installer." >&2
+    cat >&2 <<'EOF'
+lucy-installer: no graphical installer is available on this medium.
+
+Calamares is packaged in the AUR, not the official repositories, so it is not
+bundled in the ISO. To get it on the live system:
+
+    sudo pacman -S --needed base-devel git
+    git clone https://aur.archlinux.org/calamares.git
+    cd calamares && makepkg -si
+    lucy-installer
+
+EOF
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send "Lucy OS" "No installer available. See the terminal output."
+    fi
     exit 1
 fi
 
 # Post-installer transition: full-screen launch animation into the desktop.
-if [ "$status" -eq 0 ] && [ -x /usr/local/bin/lucy-launch ]; then
-    /usr/local/bin/lucy-launch
+if [ "$status" -eq 0 ] && [ -x "$LAUNCH" ]; then
+    "$LAUNCH"
 fi
 
 exit "$status"

@@ -1,6 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use sysinfo::{Disks, System};
+use tauri::Emitter;
+#[cfg(desktop)]
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+
+/// Event emitted when the user presses the global palette shortcut.
+const PALETTE_EVENT: &str = "lucy://toggle-palette";
 
 #[derive(Debug, Serialize, Deserialize)]
 struct SystemInfo {
@@ -235,6 +241,20 @@ fn app_flathub_setup() -> CommandResult {
     app_manager("setup")
 }
 
+/// Ask the local Lucy agent to turn natural language into a shell command.
+/// Used by the Command Palette's AI fallback. Returns the literal string
+/// NO_TRANSLATION (with success=false) when the agent cannot help.
+#[tauri::command]
+fn ai_translate(text: String) -> CommandResult {
+    let escaped = text.replace('\'', "'\\''");
+    let cmd = format!(
+        "out=$(python3 -m lucy_agent.shell_wrapper '{escaped}' 2>/dev/null); \
+         if [ -n \"$out\" ] && [ \"$out\" != \"NO_TRANSLATION\" ]; then printf '%s' \"$out\"; \
+         else printf 'NO_TRANSLATION'; exit 1; fi"
+    );
+    execute_command(cmd)
+}
+
 #[tauri::command]
 fn get_system_info() -> SystemInfo {
     let mut sys = System::new_all();
@@ -273,8 +293,24 @@ fn agent_status() -> bool {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        // Global Command Palette shortcut (Super+Space, v0.4.0 Phase 2).
+        // Registered here so it works over any application, not just when the
+        // shell has focus. The window manager deliberately does NOT bind
+        // Super+Space (see airootfs/etc/xdg/openbox/lxde-rc.xml) so there is a
+        // single owner of the key.
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state == ShortcutState::Pressed {
+                        if let Err(e) = app.emit(PALETTE_EVENT, ()) {
+                            eprintln!("lucy-shell: failed to emit palette event: {e}");
+                        }
+                    }
+                })
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             execute_command,
             launch_app,
@@ -294,10 +330,27 @@ pub fn run() {
             app_installed,
             app_status,
             app_flathub_setup,
+            ai_translate,
             get_system_info,
             get_logs,
             agent_status
-        ])
+        ]);
+
+    #[cfg(desktop)]
+    {
+        builder = builder.setup(|app| {
+            let shortcut = Shortcut::new(Some(Modifiers::SUPER), Code::Space);
+            // A failure here (e.g. the key is already grabbed) must not stop
+            // the shell from starting; the in-app key handler still works.
+            match app.global_shortcut().register(shortcut) {
+                Ok(()) => eprintln!("lucy-shell: Super+Space palette shortcut registered"),
+                Err(e) => eprintln!("lucy-shell: could not register Super+Space: {e}"),
+            }
+            Ok(())
+        });
+    }
+
+    builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

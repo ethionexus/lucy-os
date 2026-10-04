@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the v0.4.0 Phase 1 app/Flatpak configuration.
+"""Verify the v0.4.0 app/Flatpak/installer/boot configuration.
 
 Runs in CI (and on the live ISO) without pytest or a real Flatpak. Exits
 non-zero with a readable report if anything is malformed.
@@ -12,6 +12,11 @@ Checks
 * the Firefox policy and Chromium flag files are valid
 * the shell helpers pass `bash -n`
 * the systemd unit declares ExecStart and is wanted by multi-user.target
+* the initramfs carries the archiso hooks, in the right order
+* no airootfs file sits under a package-owned path
+* Calamares is absent from packages.x86_64 (AUR-only) and the configs are
+  present, including the postinstall step that strips the live archiso hook
+* Super+Space is owned by the command palette, not the WM
 """
 
 from __future__ import annotations
@@ -370,13 +375,141 @@ def check_boot_config() -> None:
             ok(f"{cfg.name} uses the archiso boot placeholders")
 
 
+def check_installer_and_palette() -> None:
+    """Guards for the Phase 2 installer, command palette and app store."""
+    print("=== installer (Calamares / archinstall) ===")
+
+    pkgs = {
+        ln.strip() for ln in PACKAGES.read_text(encoding="utf-8").splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    }
+
+    # calamares is AUR-only: listing it makes pacstrap abort with
+    # "target not found" and breaks the entire ISO build.
+    if "calamares" in pkgs:
+        fail("calamares is in packages.x86_64 but is AUR-only (build would fail)")
+    else:
+        ok("calamares is not in packages.x86_64 (AUR-only, correct)")
+
+    for pkg in ("archinstall", "btrfs-progs", "efibootmgr"):
+        if pkg in pkgs:
+            ok(f"{pkg} is in packages.x86_64")
+        else:
+            fail(f"{pkg} is missing from packages.x86_64")
+
+    # customize_airootfs.sh must probe calamares without failing the build.
+    if CUSTOMIZE.is_file():
+        text = CUSTOMIZE.read_text(encoding="utf-8")
+        if "pacman -Si calamares" in text:
+            ok("build hook probes calamares best-effort")
+        else:
+            fail("build hook does not probe calamares")
+    else:
+        fail("customize_airootfs.sh missing")
+
+    cal = AIROOTFS / "etc" / "calamares"
+    for rel in (
+        "settings.conf",
+        "modules/partition.conf",
+        "modules/mount.conf",
+        "modules/unpackfs.conf",
+        "modules/bootloader.conf",
+        "modules/initcpiocfg.conf",
+        "modules/shellprocess-postinstall.conf",
+        "branding/lucy/branding.desc",
+    ):
+        if (cal / rel).is_file():
+            ok(f"calamares config {rel}")
+        else:
+            fail(f"calamares config missing: {rel}")
+
+    post = cal / "modules" / "shellprocess-postinstall.conf"
+    if post.is_file():
+        body = post.read_text(encoding="utf-8")
+        # Without this the installed system inherits the live archiso hook and
+        # cannot boot — the very failure the ISO just had.
+        if "mkinitcpio.conf.d/archiso.conf" in body:
+            ok("postinstall strips the archiso hook from the installed system")
+        else:
+            fail("postinstall does not remove /etc/mkinitcpio.conf.d/archiso.conf")
+        if "dontChroot: true" in body:
+            ok("postinstall runs against ${ROOT} (dontChroot: true)")
+        else:
+            fail("postinstall uses ${ROOT} paths but is not dontChroot: true")
+
+    part = cal / "modules" / "partition.conf"
+    if part.is_file() and "/.snapshots" in part.read_text(encoding="utf-8"):
+        ok("partition.conf creates /.snapshots for the rollback engine")
+    elif part.is_file():
+        fail("partition.conf has no /.snapshots subvolume")
+
+    if (AIROOTFS / "etc" / "skel" / "Desktop" / "calamares.desktop").is_file():
+        ok("live Desktop shortcut Install Lucy OS")
+    else:
+        fail("missing etc/skel/Desktop/calamares.desktop")
+
+    inst = AIROOTFS / "usr" / "local" / "bin" / "lucy-installer"
+    if inst.is_file():
+        body = inst.read_text(encoding="utf-8")
+        if "calamares" in body and "archinstall" in body:
+            ok("lucy-installer prefers calamares and falls back to archinstall")
+        else:
+            fail("lucy-installer lacks the archinstall fallback")
+
+    print("=== command palette key wiring ===")
+    rc = REPO / "src" / "configs" / "airootfs" / "etc" / "xdg" / "openbox" / "lxde-rc.xml"
+    if rc.is_file():
+        body = rc.read_text(encoding="utf-8")
+        if 'keybind key="Super+space"' in body:
+            fail("openbox also binds Super+space; it is reserved for the palette")
+        else:
+            ok("openbox does not bind Super+space (palette owns it)")
+        if 'keybind key="Super+Shift+space"' in body:
+            ok("keyboard layout toggle moved to Super+Shift+space")
+        else:
+            fail("keyboard layout toggle binding missing (Super+Shift+space)")
+
+    lib = REPO / "src" / "shell" / "src-tauri" / "src" / "lib.rs"
+    app = REPO / "src" / "shell" / "src" / "App.tsx"
+    if lib.is_file():
+        body = lib.read_text(encoding="utf-8")
+        if "Modifiers::SUPER" in body and "Code::Space" in body:
+            ok("Tauri registers Super+Space")
+        else:
+            fail("Tauri does not register the Super+Space global shortcut")
+
+        # The event name must match on both sides or the palette never opens.
+        m = re.search(r'PALETTE_EVENT: &str = "([^"]+)"', body)
+        event = m.group(1) if m else None
+        if event and app.is_file() and event in app.read_text(encoding="utf-8"):
+            ok(f"palette event name matches across Rust and React ({event})")
+        else:
+            fail(f"palette event name mismatch (rust={event!r})")
+
+    store = REPO / "src" / "shell" / "src" / "components" / "AppStore.tsx"
+    if store.is_file():
+        body = store.read_text(encoding="utf-8")
+        rpcs = [
+            "app_catalog", "app_search", "app_install",
+            "app_remove", "app_installed", "app_status", "app_flathub_setup",
+        ]
+        missing = [r for r in rpcs if f'"{r}"' not in body]
+        if missing:
+            fail(f"App Store does not call: {missing}")
+        else:
+            ok("App Store calls all 7 appstore RPCs")
+    else:
+        fail("AppStore.tsx missing")
+
+
 def main() -> int:
-    print("Lucy OS v0.4.0 Phase 1 — app/Flatpak configuration verification\n")
+    print("Lucy OS v0.4.0 — app/Flatpak/installer/boot configuration verification\n")
     check_catalog()
     check_packages()
     check_browser_configs()
     check_overlay_hook()
     check_boot_config()
+    check_installer_and_palette()
     check_scripts()
     check_unit()
 

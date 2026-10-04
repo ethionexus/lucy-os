@@ -504,3 +504,433 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.cc-btn.primary {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.18);
+  color: #f2e4bd;
+}
+
+/* ===================================================================
+   Phase 2: Global Command Palette + App Store.
+   Glassmorphic, obsidian + gold, and responsive down to small panes.
+   =================================================================== */
+
+/* ---- Command Palette (Super+Space) ---- */
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  background: rgba(8, 8, 10, 0.45);
+  backdrop-filter: blur(10px) saturate(120%);
+  animation: fadeIn 120ms ease-out;
+}
+
+.palette-panel {
+  width: min(680px, 92vw);
+  max-height: min(60vh, 520px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top-color: rgba(212, 175, 55, 0.35);
+  background: rgba(22, 22, 26, 0.82);
+  backdrop-filter: blur(28px) saturate(140%);
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: #e8e6e1;
+  animation: paletteIn 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes paletteIn {
+  from { opacity: 0; transform: translateY(-10px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.palette-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.palette-search-icon {
+  font-size: 1rem;
+  opacity: 0.75;
+}
+
+.palette-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #f2efe8;
+  font-size: 1.05rem;
+  outline: none;
+}
+
+.palette-input::placeholder {
+  color: rgba(232, 230, 225, 0.42);
+}
+
+.palette-ai-button {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.14);
+  color: #f0dfae;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.palette-ai-button:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.24);
+}
+
+.palette-ai-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.palette-list {
+  flex: 1;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.palette-empty {
+  padding: 1rem;
+  color: rgba(232, 230, 225, 0.5);
+  font-size: 0.85rem;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.palette-item.selected {
+  background: rgba(212, 175, 55, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.32);
+}
+
+.palette-item-icon {
+  flex: none;
+  width: 1.6rem;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.palette-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.palette-item-title {
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.palette-item-subtitle {
+  font-size: 0.72rem;
+  color: rgba(232, 230, 225, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.palette-item-kind {
+  flex: none;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(232, 230, 225, 0.34);
+}
+
+.palette-item.kind-ai .palette-item-title {
+  color: #f0dfae;
+}
+
+.palette-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.72rem;
+  color: rgba(232, 230, 225, 0.5);
+}
+
+.palette-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-hint {
+  flex: none;
+}
+
+.palette-panel kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.7rem;
+}
+
+/* ---- App Store ---- */
+.store {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.store-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.store-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.store-title-row h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  color: #e8dcc4;
+}
+
+.store-badges {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.store-badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(232, 230, 225, 0.7);
+}
+
+.store-badge.on {
+  border-color: rgba(120, 200, 140, 0.45);
+  background: rgba(120, 200, 140, 0.14);
+  color: #cdebd4;
+}
+
+.store-badge.off {
+  border-color: rgba(220, 140, 120, 0.4);
+  background: rgba(220, 140, 120, 0.12);
+  color: #f0cfc6;
+}
+
+.store-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.store-search {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e8e6e1;
+  outline: none;
+}
+
+.store-search:focus {
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.store-categories {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.store-category {
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(232, 230, 225, 0.75);
+  font-size: 0.74rem;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.store-category.active {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f0dfae;
+}
+
+.store-message {
+  padding: 0.5rem 0.75rem;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #b9c6cf;
+  font-size: 0.75rem;
+}
+
+.store-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.7rem;
+  padding-bottom: 0.5rem;
+}
+
+.store-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(14px);
+}
+
+.store-card:hover {
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+.store-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.store-card-icon {
+  font-size: 1.4rem;
+}
+
+.store-card-titles {
+  min-width: 0;
+}
+
+.store-card-titles h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #efeadf;
+}
+
+.store-card-id {
+  display: block;
+  font-size: 0.66rem;
+  color: rgba(232, 230, 225, 0.42);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.store-card-desc {
+  margin: 0;
+  flex: 1;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: rgba(232, 230, 225, 0.65);
+}
+
+.store-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.store-card-kind {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(212, 175, 55, 0.75);
+}
+
+.store-card-state {
+  font-size: 0.72rem;
+  color: rgba(120, 200, 140, 0.85);
+}
+
+.store-empty {
+  grid-column: 1 / -1;
+  padding: 1.5rem;
+  text-align: center;
+  color: rgba(232, 230, 225, 0.5);
+  font-size: 0.85rem;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 720px) {
+  .palette-panel {
+    width: 96vw;
+    max-height: 70vh;
+  }
+
+  .palette-backdrop {
+    padding-top: 6vh;
+  }
+
+  .store-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .store-title-row {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .palette-footer .palette-hint {
+    display: none;
+  }
+
+  .dock-icon-label {
+    display: none;
+  }
+}
+
+/* Respect users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .palette-panel,
+  .palette-backdrop,
+  .cc-panel {
+    animation: none;
+  }
+}
