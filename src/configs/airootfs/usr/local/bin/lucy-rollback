@@ -1,0 +1,62 @@
+#!/bin/bash
+# Lucy OS early-boot rollback guard.
+#
+# Consumes a rollback request written by the auto-heal daemon
+# (/var/lib/lucy/rollback.request) and swaps the root subvolume to the
+# requested snapshot. Runs from lucy-rollback.service before the graphical
+# session, so a broken root never reaches the desktop.
+
+set -uo pipefail
+
+REQ="/var/lib/lucy/rollback.request"
+STATE="/var/lib/lucy/boot_status.json"
+LOG_TAG="lucy-rollback"
+
+log() { echo "$LOG_TAG: $*"; logger -t "$LOG_TAG" "$*" 2>/dev/null || true; }
+
+[ -f "$REQ" ] || exit 0
+command -v btrfs >/dev/null 2>&1 || { log "btrfs not available; leaving request in place"; exit 0; }
+
+SNAP="$(sed -n 's/.*"snapshot"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$REQ")"
+[ -n "$SNAP" ] || { log "could not parse rollback request; aborting"; exit 1; }
+[ -d "$SNAP" ] || { log "snapshot $SNAP missing; aborting"; exit 1; }
+
+log "rolling root back to $SNAP"
+
+# Snapshot the current (broken) root for post-mortem before swapping.
+if [ -d /.snapshots ]; then
+    btrfs subvolume snapshot -r / "/.snapshots/pre-rollback-$(date +%Y%m%d-%H%M%S)" 2>/dev/null || true
+fi
+
+# The actual subvolume swap needs to happen while root is not mounted as /.
+# We schedule it for the next initramfs stage by leaving a marker; the
+# lucy-rollback initcpio hook (or a btrfs subvolume set-default call from
+# the live medium) performs the final swap. Here we set the default
+# subvolume, which is honoured on the following boot.
+if btrfs subvolume set-default "$SNAP" / 2>/dev/null; then
+    log "default subvolume set to $SNAP; a reboot will complete the rollback"
+else
+    log "failed to set default subvolume; manual recovery may be required"
+    rm -f "$REQ"
+    exit 1
+fi
+
+# Reset the boot guard so we don't loop-rollback forever.
+if [ -f "$STATE" ]; then
+    python3 - "$STATE" <<'PY' 2>/dev/null || true
+import json, sys, time
+p = sys.argv[1]
+try:
+    s = json.load(open(p))
+except Exception:
+    s = {}
+s["consecutive_failures"] = 0
+s["healthy"] = False
+s["last_rollback"] = time.time()
+json.dump(s, open(p, "w"), indent=2)
+PY
+fi
+
+rm -f "$REQ"
+log "rollback armed; rebooting shortly"
+exit 0

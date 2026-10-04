@@ -111,6 +111,37 @@ fn search_files(query: String, top_k: Option<u32>) -> CommandResult {
     execute_command(cmd)
 }
 
+/// Return the boot/rollback status from the auto-heal daemon.
+#[tauri::command]
+fn get_boot_status() -> CommandResult {
+    let cmd = "python3 -c \"from lucy_agent import snapshot; import json; print(json.dumps(snapshot.get_boot_status()))\"".to_string();
+    execute_command(cmd)
+}
+
+/// Arm an instant rollback to a Btrfs snapshot (optionally named).
+#[tauri::command]
+fn trigger_rollback(snapshot: Option<String>) -> CommandResult {
+    let name = snapshot.unwrap_or_default();
+    let escaped = name.replace('\'', "'\\''");
+    let cmd = format!(
+        "python3 -c \"from lucy_agent import snapshot; import json; print(json.dumps(snapshot.trigger_rollback('{}' if '{}' else None)))\"",
+        escaped, escaped
+    );
+    execute_command(cmd)
+}
+
+/// Create a snapshot of the current root, returning its metadata.
+#[tauri::command]
+fn create_snapshot(name: Option<String>) -> CommandResult {
+    let n = name.unwrap_or_default();
+    let escaped = n.replace('\'', "'\\''");
+    let cmd = format!(
+        "python3 -c \"from lucy_agent import snapshot; import json; print(json.dumps(snapshot.create_snapshot('{}' if '{}' else None)))\"",
+        escaped, escaped
+    );
+    execute_command(cmd)
+}
+
 #[tauri::command]
 fn get_system_info() -> SystemInfo {
     let mut sys = System::new_all();
@@ -156,6 +187,9 @@ pub fn run() {
             launch_app,
             system_action,
             search_files,
+            get_boot_status,
+            trigger_rollback,
+            create_snapshot,
             get_system_info,
             get_logs,
             agent_status

@@ -1,6 +1,7 @@
 [Unit]
-Description=Lucy OS Auto-Healing Daemon
+Description=Lucy OS Auto-Healing Daemon (resource watchdog + instant rollback)
 After=network.target multi-user.target
+Before=graphical-session-pre.target
 
 [Service]
 Type=simple
@@ -15,8 +16,10 @@ StandardError=journal
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
+# The rollback engine writes boot state and rollback requests, creates
+# Btrfs snapshots under /.snapshots, and clears cache/rotates logs.
 ProtectHome=true
-ReadWritePaths=/var/log/lucy /var/cache
+ReadWritePaths=/var/log/lucy /var/cache /var/lib/lucy /.snapshots
 
 [Install]
 WantedBy=multi-user.target

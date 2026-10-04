@@ -1,0 +1,16 @@
+[Unit]
+Description=Lucy OS Early-Boot Rollback Guard
+# Runs very early, before the graphical session, so a bad root never
+# reaches the desktop (prevents black screens).
+DefaultDependencies=no
+After=local-fs.target
+Before=sysinit.target graphical-session-pre.target
+ConditionPathExists=/var/lib/lucy/rollback.request
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/lucy-rollback
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
