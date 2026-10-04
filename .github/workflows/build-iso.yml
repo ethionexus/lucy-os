@@ -132,14 +132,31 @@ jobs:
         ./scripts/build-docker.sh > /tmp/lucy-docker.log 2>&1
         rc=$?
         if [ $rc -ne 0 ]; then
+          # Surface the real cause. The previous 2000-char tail was routinely
+          # truncated before the error, which made failures hard to diagnose.
+          echo "::group::Docker build error lines"
+          grep -nE -i 'error|failed|cannot|not found|missing|insufficient|no space|conflict|invalid|unable|exceeded' \
+            /tmp/lucy-docker.log | tail -80 || true
+          echo "::endgroup::"
+          echo "::group::Docker build tail (last 200 lines)"
+          tail -200 /tmp/lucy-docker.log
+          echo "::endgroup::"
           echo "::error::Docker ISO build failed (exit $rc)"
-          echo "::error::DOCKER_TAIL=[$(tail -20 /tmp/lucy-docker.log | tr '\n' ' ' | cut -c1-2000)]"
           exit 1
         fi
         echo "Verifying ISO output..."
         ls -lh dist/*.iso
         ISO_SIZE=$(stat -c%s dist/*.iso)
         echo "Built ISO size: $ISO_SIZE bytes"
+
+    - name: Upload Docker build log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-build-log
+        path: /tmp/lucy-docker.log
+        if-no-files-found: ignore
+        retention-days: 7
 
     - name: Upload ISO artifact
       uses: actions/upload-artifact@v4

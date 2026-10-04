@@ -377,9 +377,12 @@ def parse_search(output: str) -> List[Dict[str, str]]:
 def search(
     query: str,
     runner: Optional[Runner] = None,
-    remote: str = FLATHUB_REMOTE_NAME,
 ) -> List[Dict[str, str]]:
-    """Search the catalog first, then Flathub. Catalog hits come first."""
+    """Search the catalog first, then Flathub. Catalog hits come first.
+
+    ``flatpak search`` covers every configured remote, so there is no
+    per-remote filtering here.
+    """
     catalog = load_catalog()
     local = []
     for entry in catalog.find(query):
