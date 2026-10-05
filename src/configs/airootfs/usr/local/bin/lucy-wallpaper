@@ -54,7 +54,7 @@ if [ -n "${WAYLAND_DISPLAY:-}" ]; then
 fi
 
 # The selected video must be present; otherwise the static wallpaper
-# configured in Openbox (lxde-rc.xml) remains in effect.
+# configured in Openbox remains in effect.
 if [ ! -f "$VIDEO" ]; then
     log "live video not found ($VIDEO); using static wallpaper"
     exit 0

@@ -298,7 +298,7 @@ pub fn run() {
         // Global Command Palette shortcut (Super+Space, v0.4.0 Phase 2).
         // Registered here so it works over any application, not just when the
         // shell has focus. The window manager deliberately does NOT bind
-        // Super+Space (see airootfs/etc/xdg/openbox/lxde-rc.xml) so there is a
+        // Super+Space (see usr/share/lucy/overlay/openbox/rc.xml) so there is a
         // single owner of the key.
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()

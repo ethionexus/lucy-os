@@ -36,6 +36,7 @@ OVERLAY = AIROOTFS / "usr" / "share" / "lucy" / "overlay"
 POLICIES_JSON = OVERLAY / "firefox" / "distribution" / "policies.json"
 CHROMIUM_FLAGS = OVERLAY / "chromium-flags.conf"
 XKB_LAYOUT = OVERLAY / "xkb" / "symbols" / "lucy-amharic"
+OPENBOX_RC = OVERLAY / "openbox" / "rc.xml"
 CUSTOMIZE = AIROOTFS / "root" / "customize_airootfs.sh"
 LIGHTDM_CONF = OVERLAY / "lightdm" / "lightdm.conf"
 GREETER_CONF = OVERLAY / "lightdm" / "lightdm-gtk-greeter.conf"
@@ -477,7 +478,7 @@ def check_installer_and_palette() -> None:
             fail("lucy-installer lacks the archinstall fallback")
 
     print("=== command palette key wiring ===")
-    rc = REPO / "src" / "configs" / "airootfs" / "etc" / "xdg" / "openbox" / "lxde-rc.xml"
+    rc = OPENBOX_RC
     if rc.is_file():
         body = rc.read_text(encoding="utf-8")
         if 'keybind key="Super+space"' in body:
@@ -488,6 +489,21 @@ def check_installer_and_palette() -> None:
             ok("keyboard layout toggle moved to Super+Shift+space")
         else:
             fail("keyboard layout toggle binding missing (Super+Shift+space)")
+    else:
+        fail("openbox rc.xml missing from the overlay")
+
+    # It must not sit in the airootfs under etc/xdg/openbox, and the name must
+    # not be lxde-rc.xml: nothing reads that file.
+    if (AIROOTFS / "etc" / "xdg" / "openbox").exists():
+        fail("airootfs/etc/xdg/openbox exists; Openbox config must be staged + hook-installed")
+    else:
+        ok("no openbox config in the airootfs (staged instead)")
+
+    hook_body = CUSTOMIZE.read_text(encoding="utf-8") if CUSTOMIZE.is_file() else ""
+    if "patch_openbox_keybind" in hook_body and "/etc/xdg/openbox/LXDE/rc.xml" in hook_body:
+        ok("build hook injects the shortcut into /etc/xdg/openbox/LXDE/rc.xml")
+    else:
+        fail("build hook does not patch /etc/xdg/openbox/LXDE/rc.xml (binding would be dead)")
 
     lib = REPO / "src" / "shell" / "src-tauri" / "src" / "lib.rs"
     app = REPO / "src" / "shell" / "src" / "App.tsx"

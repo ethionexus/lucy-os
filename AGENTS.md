@@ -469,7 +469,7 @@ All opt-in. English (US) stays the default system language and layout.
 
 | Feature | Entry point | Wiring |
 | --- | --- | --- |
-| Keyboard toggle | `usr/local/bin/lucy-keyboard` | TopBar indicator, **Super+Space** in `etc/xdg/openbox/lxde-rc.xml`, Settings |
+| Keyboard toggle | `usr/local/bin/lucy-keyboard` | TopBar indicator, **Super+Shift+Space** (openbox), Settings |
 | Locale pack | `usr/local/bin/lucy-locale` | Settings → Region & Language; writes `/etc/locale.gen` + `locale-gen` |
 | Heritage theme | `usr/local/bin/lucy-theme` | Settings → Appearance; `data-theme="heritage"` in `shell.css` |
 | Multi-language AI | `parse_language_flag()` in `nlp.py` | `/lang:am` and friends; `ai_language` under `[ai]` in `agent.conf` |
@@ -481,8 +481,13 @@ All opt-in. English (US) stays the default system language and layout.
 - Shell RPC: `keyboard_layout`, `system_locale`, `heritage_theme`,
   `get_localization_status`
 - State persisted in `$XDG_CONFIG_HOME/lucy/` as `keyboard`, `locale`, `theme`
-- `Super+Space` in `lxde-rc.xml` must `Execute` `lucy-keyboard toggle` —
-  Openbox's own `Toggle` action switches windows, not layouts
+- `Super+Shift+Space` is bound to `lucy-keyboard toggle`. It lives in
+  `usr/share/lucy/overlay/openbox/rc.xml` and is injected (post-pacstrap) into
+  `/etc/xdg/openbox/LXDE/rc.xml`, which is the file `openbox-lxde` copies to
+  `~/.config/openbox/rc.xml`. A binding placed anywhere else is dead config -
+  `lxde-rc.xml` in particular is read by nothing.
+  (Openbox's own `Toggle` action switches windows, not layouts, so the binding
+  must `Execute` the script.)
 
 **Never** change the default language automatically: `lucy-locale remove`
 only resets the state file, and English remains active.
@@ -640,9 +645,13 @@ Bootloader label: entries use `%ARCHISO_LABEL%` / `%INSTALL_DIR%` /
 - Rust emits `lucy://toggle-palette`; `App.tsx` listens and toggles. The
   event name is defined once in Rust (`PALETTE_EVENT`) and
   `verify-app-configs.py` fails if the React side drifts from it.
-- The Amharic layout toggle moved to **`Super+Shift+Space`** in
-  `etc/xdg/openbox/lxde-rc.xml`. Do **not** re-bind `Super+space` in openbox:
-  two owners of the key fight, and the verifier fails the build.
+- The Amharic layout toggle moved to **`Super+Shift+Space`**. It is staged in
+  `usr/share/lucy/overlay/openbox/rc.xml` and injected into
+  `/etc/xdg/openbox/LXDE/rc.xml` after pacstrap. Do **not** re-bind
+  `Super+space` in openbox: two owners of the key fight, and the verifier fails
+  the build. Never put Openbox config in `airootfs/etc/xdg/openbox/` — the
+  file name `lxde-rc.xml` is read by nothing, and `LXDE/rc.xml` is
+  package-owned and would be overwritten.
 - A failed registration is only a warning; the in-app `keydown` handler is
   the fallback.
 

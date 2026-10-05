@@ -73,6 +73,61 @@ if [ -f "$OVERLAY/plymouth/plymouthd.conf" ]; then
     log "installed /etc/plymouth/plymouthd.conf"
 fi
 
+# --- Openbox config -------------------------------------------------------
+# Two traps here:
+#   1. Our keyboard shortcut used to live in airootfs/etc/xdg/openbox/
+#      lxde-rc.xml. Nothing reads that name: Openbox uses
+#      ~/.config/openbox/rc.xml and falls back to /etc/xdg/openbox/rc.xml,
+#      while lxde-common ships /etc/xdg/openbox/LXDE/rc.xml. The binding was
+#      dead configuration.
+#   2. /etc/xdg/openbox/LXDE/rc.xml is package-owned, and it is the file
+#      openbox-lxde copies to ~/.config/openbox/rc.xml at session start, so
+#      the shortcut has to be injected there (after pacstrap) to take effect.
+if [ -f "$OVERLAY/openbox/rc.xml" ]; then
+    install -d -m 0755 /etc/xdg/openbox
+    install -m 0644 "$OVERLAY/openbox/rc.xml" /etc/xdg/openbox/rc.xml
+    log "installed /etc/xdg/openbox/rc.xml"
+fi
+
+# Adds the layout-toggle binding inside <keyboard> if one exists, otherwise
+# creates the section before </openbox_config>. Idempotent.
+patch_openbox_keybind() {
+    rc="$1"
+    [ -f "$rc" ] || return 0
+    if grep -q 'Super+Shift+space' "$rc" 2>/dev/null; then
+        return 0
+    fi
+    tmp="$(mktemp)"
+    awk '
+        /<\/keyboard>/ && in_kb && !done {
+            print "    <keybind key=\"Super+Shift+space\">";
+            print "      <action name=\"Execute\">";
+            print "        <command>/usr/local/bin/lucy-keyboard toggle</command>";
+            print "      </action>";
+            print "    </keybind>";
+            in_kb = 0; done = 1;
+        }
+        /<\/openbox_config>/ && !done {
+            print "  <keyboard>";
+            print "    <keybind key=\"Super+Shift+space\">";
+            print "      <action name=\"Execute\">";
+            print "        <command>/usr/local/bin/lucy-keyboard toggle</command>";
+            print "      </action>";
+            print "    </keybind>";
+            print "  </keyboard>";
+            done = 1;
+        }
+        { print }
+        /<keyboard>/ { in_kb = 1 }
+    ' "$rc" > "$tmp" && cat "$tmp" > "$rc"
+    rm -f "$tmp"
+}
+
+if [ -f /etc/xdg/openbox/LXDE/rc.xml ]; then
+    patch_openbox_keybind /etc/xdg/openbox/LXDE/rc.xml
+    log "layout shortcut injected into /etc/xdg/openbox/LXDE/rc.xml"
+fi
+
 # --- initramfs ------------------------------------------------------------
 # archiso does not run mkinitcpio; it copies /boot from this root onto the
 # ISO. Rebuild here so the archiso hooks are guaranteed to be included, and
