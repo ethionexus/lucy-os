@@ -125,6 +125,56 @@ printf '# Lucy OS live user: no password prompt inside the live session.\nlucy A
 chmod 0440 /etc/sudoers.d/10-lucy || true
 log "live user ready (passwordless sudo)"
 
+# --- LightDM autologin group ----------------------------------------------
+# Having autologin-user in lightdm.conf is NOT enough. LightDM authenticates
+# through the lightdm-autologin PAM stack, whose first rule is normally
+#
+#     auth sufficient pam_succeed_if.so user ingroup autologin
+#
+# If the user is not in that group the rule fails, PAM falls through to
+# system-login, and the greeter appears asking for a password even though
+# autologin is configured correctly.
+#
+# The group name varies between distributions (autologin vs nopasswdlogin), so
+# read it from the installed PAM file instead of assuming, and always cover
+# "autologin" as well.
+AUTOLOGIN_PAM="/etc/pam.d/lightdm-autologin"
+autologin_groups="autologin"
+
+if [ -f "$AUTOLOGIN_PAM" ]; then
+    for g in $(sed -n 's/.*pam_succeed_if\.so.*ingroup[[:space:]]\{1,\}\([A-Za-z0-9_-]\{1,\}\).*/\1/p' \
+                   "$AUTOLOGIN_PAM" 2>/dev/null); do
+        case " $autologin_groups " in
+            *" $g "*) ;;
+            *) autologin_groups="$autologin_groups $g" ;;
+        esac
+    done
+fi
+
+for g in $autologin_groups; do
+    getent group "$g" >/dev/null 2>&1 || groupadd -r "$g" 2>/dev/null || true
+    gpasswd -a lucy "$g" >/dev/null 2>&1 || usermod -aG "$g" lucy >/dev/null 2>&1 || true
+done
+log "autologin group membership: $(id -nG lucy 2>/dev/null || echo unknown)"
+
+# If the PAM stack has no autologin rule at all it would still demand a
+# password. Add a sufficient rule at the top of the auth stack.
+if [ -f "$AUTOLOGIN_PAM" ]; then
+    if grep -q 'pam_succeed_if' "$AUTOLOGIN_PAM"; then
+        log "lightdm-autologin already permits group-based autologin"
+    else
+        pam_tmp="$(mktemp)"
+        {
+            printf '# Lucy OS: passwordless autologin for the live user.\n'
+            printf 'auth      sufficient pam_succeed_if.so user ingroup autologin\n'
+            cat "$AUTOLOGIN_PAM"
+        } > "$pam_tmp"
+        cat "$pam_tmp" > "$AUTOLOGIN_PAM"
+        rm -f "$pam_tmp"
+        log "added pam_succeed_if autologin rule to $AUTOLOGIN_PAM"
+    fi
+fi
+
 # --- Display manager + graphical target -----------------------------------
 # Explicitly symlink display-manager.service: lightdm and lxdm can both be
 # installed, and without this link nothing starts X and the boot falls through

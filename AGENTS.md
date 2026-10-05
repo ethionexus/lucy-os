@@ -732,6 +732,30 @@ for `lucy`, autologin settings, masked prompts and the Plymouth theme.
 It cannot be exercised in CI (no VM), so it is written to be run on the live
 medium or from a rescue TTY.
 
+#### Why autologin can still prompt for a password
+
+Setting `autologin-user` alone is **not** sufficient. LightDM authenticates
+through the `lightdm-autologin` PAM stack, whose first rule is normally:
+
+```
+auth  sufficient  pam_succeed_if.so user ingroup autologin
+```
+
+If the user is not in that group the rule fails, PAM falls through to
+`system-login`, and the greeter asks for a password — even though
+`autologin-user=lucy` is correct. This is exactly what happened once.
+
+`customize_airootfs.sh` therefore:
+
+- creates the `autologin` group and adds `lucy` to it
+- **reads the group name out of the installed PAM file** rather than assuming
+  it, because some distributions use `nopasswdlogin` instead
+- injects a `pam_succeed_if ... ingroup autologin` rule only if the stack has
+  none at all (never duplicates an existing one)
+
+`lucy-boot-check` verifies the group membership and every group named by the
+PAM rule, so this is diagnosable from the live system.
+
 Theme/font packages: only official repos — `papirus-icon-theme`,
 `deepin-icon-theme`, `deepin-gtk-theme`, `materia-gtk-theme`,
 `gnome-themes-extra`, `ttf-dejavu`, `gnu-free-fonts` (Ethiopic coverage).

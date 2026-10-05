@@ -513,6 +513,7 @@ TTY login prompt.
 | --- | --- |
 | Live user | created in `customize_airootfs.sh` — `lucy`, empty password, NOPASSWD sudo, `-m` copies `/etc/skel` |
 | Autologin | `etc/lightdm/lightdm.conf` — `autologin-user=lucy`, `autologin-user-timeout=0` |
+| Autologin group | `lucy` added to the `autologin` group in `customize_airootfs.sh` |
 | Greeter | `etc/lightdm/lightdm-gtk-greeter.conf` (only matters if autologin is off) |
 | Session | `usr/share/xsessions/lucy.desktop` → `/usr/local/bin/lucy-session` (LXDE on Openbox) |
 | Desktop | `display-manager.service` → `lightdm.service`, `default.target` → `graphical.target` |

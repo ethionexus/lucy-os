@@ -97,6 +97,36 @@ else
     bad "user '$REQUIRED_USER' does not exist"
 fi
 
+# --- 4b. autologin group and PAM ------------------------------------------
+# This is what actually decides whether the greeter asks for a password.
+echo "== autologin group / PAM =="
+if id -nG "$REQUIRED_USER" 2>/dev/null | grep -qw autologin; then
+    ok "'$REQUIRED_USER' is in the autologin group"
+else
+    bad "'$REQUIRED_USER' is not in the autologin group -> PAM will demand a password"
+fi
+
+PAM_AUTOLOGIN=/etc/pam.d/lightdm-autologin
+if [ -f "$PAM_AUTOLOGIN" ]; then
+    if grep -q 'pam_succeed_if' "$PAM_AUTOLOGIN"; then
+        ok "lightdm-autologin has a pam_succeed_if rule"
+    else
+        bad "lightdm-autologin has no pam_succeed_if rule -> a password will be required"
+    fi
+
+    # Every group named by the rule must contain the live user.
+    for g in $(sed -n 's/.*pam_succeed_if\.so.*ingroup[[:space:]]\{1,\}\([A-Za-z0-9_-]\{1,\}\).*/\1/p' \
+                   "$PAM_AUTOLOGIN" 2>/dev/null); do
+        if id -nG "$REQUIRED_USER" 2>/dev/null | grep -qw "$g"; then
+            ok "'$REQUIRED_USER' is in group '$g' required by the PAM rule"
+        else
+            bad "'$REQUIRED_USER' is NOT in group '$g' required by the PAM rule"
+        fi
+    done
+else
+    note "$PAM_AUTOLOGIN not found (lightdm may not be installed)"
+fi
+
 # --- 5. interactive prompts suppressed ------------------------------------
 echo "== interactive prompts =="
 for unit in systemd-firstboot.service getty@tty1.service; do

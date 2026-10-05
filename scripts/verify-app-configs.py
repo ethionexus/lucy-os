@@ -575,6 +575,11 @@ def check_live_boot() -> None:
         "getty@tty1.service": "masks the tty1 login prompt",
         "useradd": "creates the live user",
         "NOPASSWD": "grants passwordless sudo",
+        # Without this the greeter asks for a password even though
+        # autologin-user is set: pam_succeed_if fails and PAM falls through.
+        "groupadd": "creates the autologin group",
+        "autologin": "adds the live user to the autologin group",
+        "/etc/pam.d/lightdm-autologin": "touches the lightdm-autologin PAM stack",
     }
     for needle, label in required_hook.items():
         if needle in hook:
