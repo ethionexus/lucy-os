@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Lucy OS
+Comment=Lucy OS live desktop (LXDE on Openbox)
+Exec=/usr/local/bin/lucy-session
+Type=Application
+DesktopNames=LXDE;
+Keywords=lucy;desktop;session;

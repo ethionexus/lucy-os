@@ -399,6 +399,7 @@ LibreOffice, Spotify, OBS, Krita and more).
 python scripts/verify-app-configs.py   # config only, no Flatpak needed
 bash   scripts/test-app-manager.sh     # functional, uses a fake flatpak
 cd src/core/python && pytest tests     # 56 tests
+lucy-boot-check                        # on the live medium: confirm autologin
 ```
 
 ### Boot requirements (initramfs)
@@ -502,6 +503,50 @@ which the Week 3 rollback engine requires), `mount.conf`, `unpackfs.conf`,
 `/etc/mkinitcpio.conf.d/archiso.conf` from the target and rebuilds its
 initramfs. Without that the installed system inherits the `archiso` hook,
 has no live medium to find, and will not boot.
+
+### Live boot: autologin, display manager, splash
+
+The ISO boots straight into the desktop. Nothing should ever fall through to a
+TTY login prompt.
+
+| Piece | Where |
+| --- | --- |
+| Live user | created in `customize_airootfs.sh` — `lucy`, empty password, NOPASSWD sudo, `-m` copies `/etc/skel` |
+| Autologin | `etc/lightdm/lightdm.conf` — `autologin-user=lucy`, `autologin-user-timeout=0` |
+| Greeter | `etc/lightdm/lightdm-gtk-greeter.conf` (only matters if autologin is off) |
+| Session | `usr/share/xsessions/lucy.desktop` → `/usr/local/bin/lucy-session` (LXDE on Openbox) |
+| Desktop | `display-manager.service` → `lightdm.service`, `default.target` → `graphical.target` |
+| Prompts | `systemd-firstboot.service` and `getty@tty1.service` masked to `/dev/null` |
+| Splash | `plymouth` + the `lucy` theme (`usr/share/plymouth/themes/lucy`), hook right after `udev` |
+
+The symlinks and the user are created in `customize_airootfs.sh` rather than
+committed as repo symlinks, because Git on Windows (where this project is
+developed) stores them as plain files — which would leave
+`display-manager.service` a text file and nothing would start X.
+
+Plymouth cannot block boot: if the theme fails to draw on an unusual GPU or VM,
+Plymouth logs it and startup continues. `plymouth.enable=0` on the kernel
+command line disables it entirely. `tty2`–`tty6` stay available for rescue.
+
+Run **`lucy-boot-check`** on the live system to confirm the whole pipeline:
+target, display manager, X session, logind session for `lucy`, autologin
+settings, masked prompts, and the Plymouth theme.
+
+### Desktop themes
+
+Official repo packages only — `papirus-icon-theme`, `deepin-icon-theme`,
+`deepin-gtk-theme`, `materia-gtk-theme`, `gnome-themes-extra`, `ttf-dejavu`
+and `gnu-free-fonts` (FreeSerif/FreeSans carry Ethiopic, so the optional
+Amharic layout renders real glyphs instead of boxes).
+
+`fluent-gtk-theme`, `arc-gtk-theme`, `numix-icon-theme` and
+`qogir-icon-theme` are **AUR-only** and must never be added to
+`packages.x86_64` — pacstrap would abort and break the build.
+
+The live session's default GTK/icon theme is set in
+`etc/skel/.config/gtk-3.0/settings.ini` using only names guaranteed to exist
+(Adwaita-dark, Papirus-Dark); the Deepin themes are installed and selectable
+from lxappearance.
 
 ## License
 

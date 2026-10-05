@@ -681,6 +681,63 @@ Two details that matter:
 The live desktop shortcut is `etc/skel/Desktop/calamares.desktop`
 ("Install Lucy OS"); the postinstall removes it from the installed user.
 
+### v0.4.0: live boot pipeline (autologin, DM, plymouth)
+
+The medium must boot straight to the desktop; never to a TTY login prompt.
+
+Everything is wired in `airootfs/root/customize_airootfs.sh`:
+
+- creates the live user **`lucy`** (`useradd -m`, empty password, NOPASSWD
+  sudo in `/etc/sudoers.d/10-lucy`). `-m` copies `/etc/skel`, which is how
+  the desktop shortcut and GTK settings appear.
+- `ln -sf /usr/lib/systemd/system/lightdm.service /etc/systemd/system/display-manager.service`
+- `ln -sf /usr/lib/systemd/system/graphical.target /etc/systemd/system/default.target`
+- masks `systemd-firstboot.service` and `getty@tty1.service` to `/dev/null`
+
+**Why symlinks are created in the hook and not committed:** this project is
+developed on Windows, where Git stores symlinks as plain files. A committed
+"symlink" would land in the ISO as a text file, `display-manager.service`
+would not be a symlink, and nothing would start X — the exact bug reported.
+Never commit these as repo symlinks.
+
+Config:
+
+- `etc/lightdm/lightdm.conf` — `autologin-user=lucy`,
+  `autologin-user-timeout=0`, `autologin-session=lucy`
+- `etc/lightdm/lightdm-gtk-greeter.conf` — exactly one `[greeter]` section
+- `usr/share/xsessions/lucy.desktop` → `usr/local/bin/lucy-session`
+  (startlxde, falling back to openbox-session)
+- `etc/plymouth/plymouthd.conf` — `Theme=lucy`, with the theme staged at
+  `usr/share/plymouth/themes/lucy/`. The logo is copied from
+  `/usr/share/pixmaps/lucy.png` by the hook (single source of truth).
+- `etc/skel/.config/gtk-3.0/settings.ini` — Adwaita-dark + Papirus-Dark,
+  names that are guaranteed present.
+
+Plymouth must never block boot. If it cannot draw, it logs and startup
+continues; `plymouth.enable=0` disables it. `tty2`–`tty6` remain available.
+
+Initramfs HOOKS:
+
+```
+base udev plymouth modconf kms archiso archiso_loop_mnt block filesystems keyboard
+```
+
+`plymouth` goes immediately after `udev` and **before** `kms` (kms hands the
+framebuffer over). Never reorder those, and never let archiso hooks move after
+`block` — `verify-app-configs.py::check_live_boot()` enforces both.
+
+Runtime verification: **`lucy-boot-check`** (shipped in
+`usr/local/bin/`) checks the target, display manager, X server, logind session
+for `lucy`, autologin settings, masked prompts and the Plymouth theme.
+It cannot be exercised in CI (no VM), so it is written to be run on the live
+medium or from a rescue TTY.
+
+Theme/font packages: only official repos — `papirus-icon-theme`,
+`deepin-icon-theme`, `deepin-gtk-theme`, `materia-gtk-theme`,
+`gnome-themes-extra`, `ttf-dejavu`, `gnu-free-fonts` (Ethiopic coverage).
+`fluent-gtk-theme`, `arc-gtk-theme`, `numix-icon-theme`, `qogir-icon-theme`
+are AUR-only and must never be listed.
+
 ### Modifying Archiso Profile
 
 1. Edit `src/configs/profiledef.sh` for metadata

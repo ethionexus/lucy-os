@@ -1,0 +1,129 @@
+#!/bin/bash
+# Lucy OS live-boot verification.
+#
+# Confirms the medium booted straight into the graphical session with no
+# interactive prompt: a display manager running, the graphical target reached,
+# passwordless autologin for the live user, and the console/firstboot prompts
+# masked.
+#
+# Run it on the live system, or from any rescue TTY:
+#     lucy-boot-check
+#
+# Exit 0 = the live boot pipeline is healthy. Exit 1 = at least one check
+# failed; each line is printed as OK / FAIL with the reason.
+
+set -uo pipefail
+
+REQUIRED_USER="${LUCY_LIVE_USER:-lucy}"
+failures=0
+
+ok()   { printf '  OK   %s\n' "$*"; }
+bad()  { printf '  FAIL %s\n' "$*"; failures=$((failures + 1)); }
+note() { printf '  note %s\n' "$*"; }
+
+unit_state() {
+    # "masked", "enabled", "disabled", "active", ... (never non-zero-exits)
+    systemctl is-enabled "$1" 2>/dev/null || true
+}
+
+unit_active() {
+    systemctl is-active "$1" 2>/dev/null || true
+}
+
+printf 'Lucy OS live-boot check\n\n'
+
+# --- 1. target -------------------------------------------------------------
+echo "== boot target =="
+default_target="$(systemctl get-default 2>/dev/null || echo unknown)"
+if [ "$default_target" = "graphical.target" ]; then
+    ok "default target is graphical.target"
+else
+    bad "default target is '$default_target' (expected graphical.target) -> boot would stop at a TTY"
+fi
+
+if [ "$(unit_active graphical.target)" = "active" ]; then
+    ok "graphical.target is active"
+else
+    bad "graphical.target is not active"
+fi
+
+# --- 2. display manager ----------------------------------------------------
+echo "== display manager =="
+if [ "$(unit_active display-manager.service)" = "active" ]; then
+    ok "display-manager.service is active"
+else
+    bad "display-manager.service is not active (nothing started X)"
+fi
+
+if [ -L /etc/systemd/system/display-manager.service ]; then
+    ok "display-manager.service is a symlink -> $(readlink /etc/systemd/system/display-manager.service)"
+else
+    bad "/etc/systemd/system/display-manager.service is not a symlink"
+fi
+
+# --- 3. X session ----------------------------------------------------------
+echo "== graphical session =="
+if pgrep -x Xorg >/dev/null 2>&1 || pgrep -x X >/dev/null 2>&1; then
+    ok "an X server is running"
+else
+    bad "no X server is running"
+fi
+
+if command -v loginctl >/dev/null 2>&1; then
+    if loginctl list-sessions --no-legend 2>/dev/null | grep -qw "$REQUIRED_USER"; then
+        ok "session for '$REQUIRED_USER' is registered with logind"
+    else
+        bad "no logind session for '$REQUIRED_USER' (autologin did not happen)"
+    fi
+fi
+
+# --- 4. autologin configuration -------------------------------------------
+echo "== autologin =="
+if grep -qE "^[[:space:]]*autologin-user=${REQUIRED_USER}[[:space:]]*$" /etc/lightdm/lightdm.conf 2>/dev/null; then
+    ok "lightdm autologin-user=${REQUIRED_USER}"
+else
+    bad "lightdm.conf does not set autologin-user=${REQUIRED_USER}"
+fi
+
+if grep -qE "^[[:space:]]*autologin-user-timeout=0[[:space:]]*$" /etc/lightdm/lightdm.conf 2>/dev/null; then
+    ok "autologin waits for no input (timeout=0)"
+else
+    bad "autologin-user-timeout is not 0 (the greeter may wait)"
+fi
+
+if id "$REQUIRED_USER" >/dev/null 2>&1; then
+    ok "user '$REQUIRED_USER' exists"
+else
+    bad "user '$REQUIRED_USER' does not exist"
+fi
+
+# --- 5. interactive prompts suppressed ------------------------------------
+echo "== interactive prompts =="
+for unit in systemd-firstboot.service getty@tty1.service; do
+    state="$(unit_state "$unit")"
+    if [ "$state" = "masked" ]; then
+        ok "$unit is masked"
+    else
+        bad "$unit is '$state' (expected masked)"
+    fi
+done
+
+# --- 6. plymouth -----------------------------------------------------------
+echo "== boot splash =="
+theme="$(sed -n 's/^[[:space:]]*Theme=//p' /etc/plymouth/plymouthd.conf 2>/dev/null | head -1)"
+if [ -n "$theme" ] && [ -f "/usr/share/plymouth/themes/$theme/$theme.plymouth" ]; then
+    ok "plymouth theme '$theme' is configured and present"
+elif [ -n "$theme" ]; then
+    note "plymouth theme '$theme' is configured but the theme files are missing"
+else
+    note "plymouth theme not configured"
+fi
+
+# --- summary ---------------------------------------------------------------
+echo
+if [ "$failures" -eq 0 ]; then
+    echo "RESULT: PASS - live boot reaches the desktop without console input"
+    exit 0
+fi
+echo "RESULT: FAIL - $failures check(s) failed"
+exit 1

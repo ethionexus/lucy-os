@@ -518,6 +518,128 @@ def check_installer_and_palette() -> None:
         fail("AppStore.tsx missing")
 
 
+def check_live_boot() -> None:
+    """Guards the live-boot pipeline: autologin, no prompts, splash.
+
+    The failure this catches is exactly the reported one — the ISO falling
+    through to a TTY login because nothing started the display manager.
+    """
+    print("=== live boot: autologin + display manager ===")
+
+    lightdm = AIROOTFS / "etc" / "lightdm" / "lightdm.conf"
+    if not lightdm.is_file():
+        fail("etc/lightdm/lightdm.conf is missing (boot would reach a TTY)")
+    else:
+        body = lightdm.read_text(encoding="utf-8")
+        checks = {
+            "autologin-user=lucy": "autologin for the live user",
+            "autologin-user-timeout=0": "no wait for input",
+            "autologin-session=lucy": "session selected for autologin",
+            "greeter-session=lightdm-gtk-greeter": "GTK greeter",
+        }
+        for needle, label in checks.items():
+            if needle in body:
+                ok(label)
+            else:
+                fail(f"lightdm.conf missing {needle!r} ({label})")
+
+    greeter = AIROOTFS / "etc" / "lightdm" / "lightdm-gtk-greeter.conf"
+    if greeter.is_file():
+        body = greeter.read_text(encoding="utf-8")
+        # Two [greeter] groups would be a malformed key file.
+        if body.count("[greeter]") > 1:
+            fail("lightdm-gtk-greeter.conf has duplicate [greeter] sections")
+        else:
+            ok("greeter theme configured (papirus/deepin available)")
+    else:
+        fail("etc/lightdm/lightdm-gtk-greeter.conf missing")
+
+    xsess = AIROOTFS / "usr" / "share" / "xsessions" / "lucy.desktop"
+    if xsess.is_file() and "Exec=/usr/local/bin/lucy-session" in xsess.read_text(encoding="utf-8"):
+        ok("xsession 'lucy' points at lucy-session")
+    else:
+        fail("usr/share/xsessions/lucy.desktop missing or wrong Exec")
+
+    session = AIROOTFS / "usr" / "local" / "bin" / "lucy-session"
+    if session.is_file() and "startlxde" in session.read_text(encoding="utf-8"):
+        ok("lucy-session launches the desktop")
+    else:
+        fail("lucy-session missing or does not start the desktop")
+
+    # The hook has to do the symlink/mask/user work; nothing else will.
+    hook = CUSTOMIZE.read_text(encoding="utf-8") if CUSTOMIZE.is_file() else ""
+    required_hook = {
+        "/etc/systemd/system/display-manager.service": "symlinks display-manager.service",
+        "graphical.target": "sets the graphical default target",
+        "systemd-firstboot.service": "masks systemd-firstboot",
+        "getty@tty1.service": "masks the tty1 login prompt",
+        "useradd": "creates the live user",
+        "NOPASSWD": "grants passwordless sudo",
+    }
+    for needle, label in required_hook.items():
+        if needle in hook:
+            ok(f"build hook {label}")
+        else:
+            fail(f"build hook does not {label}")
+
+    print("=== live boot: plymouth ===")
+    pkgs = {
+        ln.strip() for ln in PACKAGES.read_text(encoding="utf-8").splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    }
+    for pkg in ("plymouth", "lightdm", "lightdm-gtk-greeter", "papirus-icon-theme",
+                "deepin-icon-theme", "deepin-gtk-theme", "gnu-free-fonts"):
+        if pkg in pkgs:
+            ok(f"{pkg} is in packages.x86_64")
+        else:
+            fail(f"{pkg} is missing from packages.x86_64")
+
+    # AUR-only theme packages would break the build.
+    for pkg in ("fluent-gtk-theme", "arc-gtk-theme", "numix-icon-theme", "qogir-icon-theme"):
+        if pkg in pkgs:
+            fail(f"{pkg} is AUR-only and must not be in packages.x86_64")
+    ok("no AUR-only theme packages")
+
+    dropin = MKINITCPIO_DROPIN.read_text(encoding="utf-8") if MKINITCPIO_DROPIN.is_file() else ""
+    line = next((l for l in dropin.splitlines() if l.strip().startswith("HOOKS=")), "")
+    hooks = line.split("(", 1)[-1].split(")", 1)[0].split() if line else []
+    if "plymouth" in hooks:
+        after_udev = "udev" in hooks and hooks.index("udev") < hooks.index("plymouth")
+        before_kms = (hooks.index("kms") > hooks.index("plymouth")) if "kms" in hooks else True
+        if after_udev and before_kms:
+            ok("plymouth hook sits right after udev and before kms")
+        else:
+            fail("plymouth hook is not ordered after udev / before kms")
+    else:
+        fail("plymouth is not in the initramfs HOOKS")
+    if "archiso" in hooks:
+        ok("archiso hook still present alongside plymouth")
+    else:
+        fail("archiso hook was lost while adding plymouth")
+
+    theme = AIROOTFS / "usr" / "share" / "plymouth" / "themes" / "lucy"
+    for rel in ("lucy.plymouth", "lucy.script"):
+        if (theme / rel).is_file():
+            ok(f"plymouth theme file {rel}")
+        else:
+            fail(f"plymouth theme file missing: {rel}")
+    if "Theme=lucy" in (AIROOTFS / "etc" / "plymouth" / "plymouthd.conf").read_text(encoding="utf-8"):
+        ok("plymouthd.conf selects the lucy theme")
+    else:
+        fail("plymouthd.conf does not select the lucy theme")
+
+    if (AIROOTFS / "etc" / "skel" / ".config" / "gtk-3.0" / "settings.ini").is_file():
+        ok("GTK/icon theme set for the live session")
+    else:
+        fail("etc/skel/.config/gtk-3.0/settings.ini missing")
+
+    bootcheck = AIROOTFS / "usr" / "local" / "bin" / "lucy-boot-check"
+    if bootcheck.is_file():
+        ok("lucy-boot-check verification script shipped")
+    else:
+        fail("lucy-boot-check missing")
+
+
 def main() -> int:
     print("Lucy OS v0.4.0 — app/Flatpak/installer/boot configuration verification\n")
     check_catalog()
@@ -526,6 +648,7 @@ def main() -> int:
     check_overlay_hook()
     check_boot_config()
     check_installer_and_palette()
+    check_live_boot()
     check_scripts()
     check_unit()
 

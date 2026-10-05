@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Lucy OS
+Description=Lucy OS obsidian and gold boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/lucy
+ScriptFile=/usr/share/plymouth/themes/lucy/lucy.script

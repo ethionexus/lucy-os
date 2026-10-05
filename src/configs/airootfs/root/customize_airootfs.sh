@@ -94,3 +94,67 @@ else
 fi
 
 log "overlay applied"
+
+# --- Plymouth logo --------------------------------------------------------
+# The theme lives in the airootfs; the logo is the same file the desktop
+# entries use, copied here so the image has a single source of truth.
+if [ -f /usr/share/pixmaps/lucy.png ] && [ -d /usr/share/plymouth/themes/lucy ]; then
+    install -m 0644 /usr/share/pixmaps/lucy.png \
+        /usr/share/plymouth/themes/lucy/lucy.png
+    log "installed Plymouth theme logo"
+fi
+
+# --- Live user ------------------------------------------------------------
+# A real user (not root) with an empty password and passwordless sudo, so the
+# live session behaves like an installed system. `-m` copies /etc/skel, which
+# is how the "Install Lucy OS" desktop shortcut appears.
+if ! id lucy >/dev/null 2>&1; then
+    log "creating live user 'lucy'"
+    useradd -m -c "Lucy OS Live User" \
+        -G wheel,video,audio,storage,optical,network,power \
+        -s /bin/bash lucy
+    # Empty password: autologin needs none, and sudo never prompts.
+    passwd -d lucy >/dev/null
+fi
+
+# sudo already ships /etc/sudoers.d; only create it if a minimal image lacks
+# it, so we never chmod a package-owned directory.
+[ -d /etc/sudoers.d ] || install -d -m 0750 /etc/sudoers.d
+printf '# Lucy OS live user: no password prompt inside the live session.\nlucy ALL=(ALL:ALL) NOPASSWD: ALL\n' \
+    > /etc/sudoers.d/10-lucy
+chmod 0440 /etc/sudoers.d/10-lucy || true
+log "live user ready (passwordless sudo)"
+
+# --- Display manager + graphical target -----------------------------------
+# Explicitly symlink display-manager.service: lightdm and lxdm can both be
+# installed, and without this link nothing starts X and the boot falls through
+# to a TTY login prompt.
+DM_UNIT=""
+for unit in /usr/lib/systemd/system/lightdm.service /lib/systemd/system/lightdm.service; do
+    if [ -f "$unit" ]; then DM_UNIT="$unit"; break; fi
+done
+
+if [ -n "$DM_UNIT" ]; then
+    ln -sf "$DM_UNIT" /etc/systemd/system/display-manager.service
+    log "display-manager.service -> $DM_UNIT"
+else
+    printf 'lucy-customize: warning: lightdm.service not found; no display manager\n' >&2
+fi
+
+# Boot straight to the desktop.
+ln -sf /usr/lib/systemd/system/graphical.target /etc/systemd/system/default.target
+log "default target -> graphical.target"
+
+# --- Suppress interactive prompts -----------------------------------------
+# Masked units are symlinks to /dev/null, systemd's way of making a unit
+# impossible to start. tty2-6 stay available (logind starts them on demand) so
+# a broken session can still be rescued.
+ln -sf /dev/null /etc/systemd/system/systemd-firstboot.service
+ln -sf /dev/null /etc/systemd/system/getty@tty1.service
+log "masked systemd-firstboot and getty@tty1"
+
+# Belt and braces: also stop getty.target from pulling tty1 in.
+ln -sf /dev/null /etc/systemd/system/getty.target.wants/getty@tty1.service 2>/dev/null || true
+
+log "live boot pipeline configured"
+

@@ -1,0 +1,32 @@
+#!/bin/bash
+# Lucy OS desktop session (started by LightDM via usr/share/xsessions).
+#
+# The live desktop is LXDE on Openbox. Everything Lucy-specific hangs off
+# Openbox's autostart file (etc/xdg/openbox/autostart), which brings up the
+# live wallpaper, the launch animation and picom.
+#
+# Kept deliberately defensive: startlxde comes from lxde-common, but if it is
+# ever missing we still bring up a usable Openbox session rather than dropping
+# the user on a black screen.
+
+set -uo pipefail
+
+export XDG_CURRENT_DESKTOP="LXDE"
+export XDG_SESSION_DESKTOP="lucy"
+export XDG_SESSION_TYPE="x11"
+export PATH="/usr/local/bin:${PATH}"
+
+# Make sure the standard user directories exist in the live session.
+if command -v xdg-user-dirs-update >/dev/null 2>&1; then
+    xdg-user-dirs-update || true
+fi
+
+if command -v startlxde >/dev/null 2>&1; then
+    exec startlxde
+fi
+
+if command -v openbox-session >/dev/null 2>&1; then
+    exec openbox-session
+fi
+
+exec openbox

@@ -128,6 +128,29 @@ efibootmgr
 grub
 os-prober
 
+# Display manager + passwordless live autologin (v0.4.0 Phase 3)
+# lightdm-gtk-greeter only: lightdm-webkit2-greeter pulls webkit2gtk, which is
+# not available here.
+lightdm
+lightdm-gtk-greeter
+accountsservice
+
+# Plymouth boot splash (the Lucy theme is staged in the airootfs)
+plymouth
+
+# Desktop themes and fonts (official repos only).
+# NOTE: fluent-gtk-theme, arc-gtk-theme, numix-icon-theme and
+# qogir-icon-theme are AUR-only and must never be listed here.
+papirus-icon-theme
+deepin-icon-theme
+deepin-gtk-theme
+materia-gtk-theme
+gnome-themes-extra
+ttf-dejavu
+# FreeSerif/FreeSans carry Ethiopic coverage, so Amharic renders instead of
+# showing boxes in the optional Week 4 layout.
+gnu-free-fonts
+
 # Tauri dependencies
 gtk3
 gdk-pixbuf2

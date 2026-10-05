@@ -1,0 +1,45 @@
+// Lucy OS Plymouth boot theme (script plugin).
+//
+// Deliberately minimal: window background, the Lucy mark, the wordmark and a
+// message line. It only uses the core Plymouth script API (Window, Image,
+// Sprite, Plymouth.SetDisplayMessageFunction) so there is very little that can
+// go wrong on an unknown GPU or VM. If the theme cannot load at all, Plymouth
+// logs it and the boot still proceeds — it never blocks startup.
+//
+// "lucy.png" is copied next to this script by
+// airootfs/root/customize_airootfs.sh from /usr/share/pixmaps/lucy.png, so
+// there is a single source of truth for the logo.
+
+// --- obsidian background -------------------------------------------------
+Window.SetBackgroundTopColor(0.07, 0.07, 0.09);
+Window.SetBackgroundBottomColor(0.02, 0.02, 0.03);
+
+// --- Lucy mark, centred --------------------------------------------------
+logo_image = Image("lucy.png");
+logo_sprite = Sprite(logo_image);
+logo_sprite.SetX(Window.GetWidth() / 2 - logo_image.GetWidth() / 2);
+logo_sprite.SetY(Window.GetHeight() / 2 - logo_image.GetHeight() / 2 - 24);
+
+// --- wordmark, in the Lucy gold -----------------------------------------
+title_image = Image.Text("LUCY OS", 0.83, 0.69, 0.22);
+title_sprite = Sprite(title_image);
+title_sprite.SetX(Window.GetWidth() / 2 - title_image.GetWidth() / 2);
+title_sprite.SetY(Window.GetHeight() / 2 + logo_image.GetHeight() / 2 + 4);
+
+// --- boot messages -------------------------------------------------------
+// Show real status (e.g. fsck) rather than hiding problems behind a splash.
+message_sprite = 0;
+
+fun message_callback(text)
+{
+    if (text) {
+        message_image = Image.Text(text, 0.55, 0.55, 0.58);
+        message_sprite = Sprite(message_image);
+        message_sprite.SetX(Window.GetWidth() / 2 - message_image.GetWidth() / 2);
+        message_sprite.SetY(Window.GetHeight() - 72);
+    } else if (message_sprite) {
+        message_sprite.SetOpacity(0);
+    }
+}
+
+Plymouth.SetDisplayMessageFunction(message_callback);
