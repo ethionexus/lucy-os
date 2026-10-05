@@ -512,9 +512,9 @@ TTY login prompt.
 | Piece | Where |
 | --- | --- |
 | Live user | created in `customize_airootfs.sh` — `lucy`, empty password, NOPASSWD sudo, `-m` copies `/etc/skel` |
-| Autologin | `etc/lightdm/lightdm.conf` — `autologin-user=lucy`, `autologin-user-timeout=0` |
+| Autologin | `usr/share/lucy/overlay/lightdm/lightdm.conf` → `/etc/lightdm/lightdm.conf` (`autologin-user=lucy`, `autologin-user-timeout=0`) |
 | Autologin group | `lucy` added to the `autologin` group in `customize_airootfs.sh` |
-| Greeter | `etc/lightdm/lightdm-gtk-greeter.conf` (only matters if autologin is off) |
+| Greeter | `usr/share/lucy/overlay/lightdm/lightdm-gtk-greeter.conf` (only matters if autologin is off) |
 | Session | `usr/share/xsessions/lucy.desktop` → `/usr/local/bin/lucy-session` (LXDE on Openbox) |
 | Desktop | `display-manager.service` → `lightdm.service`, `default.target` → `graphical.target` |
 | Prompts | `systemd-firstboot.service` and `getty@tty1.service` masked to `/dev/null` |
@@ -524,6 +524,22 @@ The symlinks and the user are created in `customize_airootfs.sh` rather than
 committed as repo symlinks, because Git on Windows (where this project is
 developed) stores them as plain files — which would leave
 `display-manager.service` a text file and nothing would start X.
+
+### Package-owned config paths must be installed post-pacstrap
+
+`/etc/lightdm/lightdm.conf`, `/etc/lightdm/lightdm-gtk-greeter.conf` and
+`/etc/plymouth/plymouthd.conf` are **shipped by their packages**. The airootfs
+overlay is copied *before* pacstrap, so a copy placed there is replaced by the
+package default when the package installs.
+
+That is not theoretical: it silently discarded `autologin-user=lucy`, so
+LightDM fell back to asking for a password.
+
+Those files therefore live under `usr/share/lucy/overlay/lightdm/` and
+`usr/share/lucy/overlay/plymouth/`, and `customize_airootfs.sh` installs them
+into `/etc/...` **after** the packages are in place.
+`verify-app-configs.py` fails if any of them reappears under `airootfs/etc/`.
+
 
 Plymouth cannot block boot: if the theme fails to draw on an unusual GPU or VM,
 Plymouth logs it and startup continues. `plymouth.enable=0` on the kernel

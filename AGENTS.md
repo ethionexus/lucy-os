@@ -700,18 +700,37 @@ developed on Windows, where Git stores symlinks as plain files. A committed
 would not be a symlink, and nothing would start X — the exact bug reported.
 Never commit these as repo symlinks.
 
-Config:
+Config (package-owned paths are staged under `usr/share/lucy/overlay/` and
+installed **after pacstrap** by the hook — see the next subsection):
 
-- `etc/lightdm/lightdm.conf` — `autologin-user=lucy`,
-  `autologin-user-timeout=0`, `autologin-session=lucy`
-- `etc/lightdm/lightdm-gtk-greeter.conf` — exactly one `[greeter]` section
-- `usr/share/xsessions/lucy.desktop` → `usr/local/bin/lucy-session`
-  (startlxde, falling back to openbox-session)
-- `etc/plymouth/plymouthd.conf` — `Theme=lucy`, with the theme staged at
+- `usr/share/lucy/overlay/lightdm/lightdm.conf` → `/etc/lightdm/lightdm.conf`
+  — `autologin-user=lucy`, `autologin-user-timeout=0`, `autologin-session=lucy`
+- `usr/share/lucy/overlay/lightdm/lightdm-gtk-greeter.conf` →
+  `/etc/lightdm/lightdm-gtk-greeter.conf` — exactly one `[greeter]` section
+- `usr/share/lucy/overlay/plymouth/plymouthd.conf` →
+  `/etc/plymouth/plymouthd.conf` — `Theme=lucy`, with the theme staged at
   `usr/share/plymouth/themes/lucy/`. The logo is copied from
   `/usr/share/pixmaps/lucy.png` by the hook (single source of truth).
+- `usr/share/xsessions/lucy.desktop` → `/usr/local/bin/lucy-session`
+  (startlxde, falling back to openbox-session)
 - `etc/skel/.config/gtk-3.0/settings.ini` — Adwaita-dark + Papirus-Dark,
   names that are guaranteed present.
+
+#### Package-owned config paths MUST be installed after pacstrap
+
+`/etc/lightdm/lightdm.conf` (lightdm), `/etc/lightdm/lightdm-gtk-greeter.conf`
+(lightdm-gtk-greeter) and `/etc/plymouth/plymouthd.conf` (plymouth) are all
+**shipped by their packages**. The airootfs overlay is copied before pacstrap,
+so a copy placed there is replaced by the package default when the package
+installs.
+
+This is not theoretical — it silently discarded `autologin-user=lucy`, so
+LightDM showed a greeter and asked for a password.
+
+Stage such files under `usr/share/lucy/overlay/` (a path no package owns) and
+have `customize_airootfs.sh` install them into `/etc/...` after pacstrap.
+`verify-app-configs.py` fails if any of the three reappears under
+`airootfs/etc/`.
 
 Plymouth must never block boot. If it cannot draw, it logs and startup
 continues; `plymouth.enable=0` disables it. `tty2`–`tty6` remain available.

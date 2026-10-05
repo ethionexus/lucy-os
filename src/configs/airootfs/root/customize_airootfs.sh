@@ -48,6 +48,31 @@ if [ -f "$OVERLAY/chromium-flags.conf" ]; then
     install -m 0644 "$OVERLAY/chromium-flags.conf" /etc/chromium-flags.conf
 fi
 
+# --- LightDM and Plymouth configs -----------------------------------------
+# These paths are OWNED by the packages that provide them:
+#   /etc/lightdm/lightdm.conf              <- lightdm
+#   /etc/lightdm/lightdm-gtk-greeter.conf  <- lightdm-gtk-greeter
+#   /etc/plymouth/plymouthd.conf           <- plymouth
+#
+# The airootfs overlay is copied BEFORE pacstrap, so a copy placed there is
+# replaced by the package's default when the package installs. That silently
+# threw away autologin-user=lucy (LightDM then asked for a password) and the
+# Lucy Plymouth theme. Install them here, after the packages are in place.
+if [ -d "$OVERLAY/lightdm" ]; then
+    install -d -m 0755 /etc/lightdm
+    for f in "$OVERLAY"/lightdm/*.conf; do
+        [ -e "$f" ] || continue
+        install -m 0644 "$f" "/etc/lightdm/$(basename "$f")"
+        log "installed /etc/lightdm/$(basename "$f")"
+    done
+fi
+
+if [ -f "$OVERLAY/plymouth/plymouthd.conf" ]; then
+    install -d -m 0755 /etc/plymouth
+    install -m 0644 "$OVERLAY/plymouth/plymouthd.conf" /etc/plymouth/plymouthd.conf
+    log "installed /etc/plymouth/plymouthd.conf"
+fi
+
 # --- initramfs ------------------------------------------------------------
 # archiso does not run mkinitcpio; it copies /boot from this root onto the
 # ISO. Rebuild here so the archiso hooks are guaranteed to be included, and

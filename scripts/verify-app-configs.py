@@ -37,6 +37,10 @@ POLICIES_JSON = OVERLAY / "firefox" / "distribution" / "policies.json"
 CHROMIUM_FLAGS = OVERLAY / "chromium-flags.conf"
 XKB_LAYOUT = OVERLAY / "xkb" / "symbols" / "lucy-amharic"
 CUSTOMIZE = AIROOTFS / "root" / "customize_airootfs.sh"
+LIGHTDM_CONF = OVERLAY / "lightdm" / "lightdm.conf"
+GREETER_CONF = OVERLAY / "lightdm" / "lightdm-gtk-greeter.conf"
+PLYMOUTH_CONF = OVERLAY / "plymouth" / "plymouthd.conf"
+
 FLATPAK_INIT = AIROOTFS / "usr" / "local" / "bin" / "lucy-flatpak-init"
 APP_MANAGER = AIROOTFS / "usr" / "local" / "bin" / "lucy-app-manager"
 UNIT = AIROOTFS / "etc" / "systemd" / "system" / "lucy-flatpak-init.service"
@@ -526,9 +530,31 @@ def check_live_boot() -> None:
     """
     print("=== live boot: autologin + display manager ===")
 
-    lightdm = AIROOTFS / "etc" / "lightdm" / "lightdm.conf"
+    # These live in the post-install overlay, NOT in etc/, because the
+    # packages that own those paths ship their own copies and would replace
+    # an airootfs copy during pacstrap. That is what silently dropped
+    # autologin-user=lucy once.
+    for path, owner in ((LIGHTDM_CONF, "lightdm"),
+                        (GREETER_CONF, "lightdm-gtk-greeter"),
+                        (PLYMOUTH_CONF, "plymouth")):
+        if path.is_file():
+            ok(f"{path.name} staged for post-install by {owner}")
+        else:
+            fail(f"{path.name} is not staged under usr/share/lucy/overlay")
+
+    # Nothing may sit in airootfs/etc for these package-owned paths.
+    strays = {
+        "etc/lightdm/lightdm.conf": "lightdm",
+        "etc/lightdm/lightdm-gtk-greeter.conf": "lightdm-gtk-greeter",
+        "etc/plymouth/plymouthd.conf": "plymouth",
+    }
+    for stray, owner in strays.items():
+        if (AIROOTFS / stray).exists():
+            fail(f"{stray} is in the airootfs; the {owner} package would overwrite it")
+
+    lightdm = LIGHTDM_CONF
     if not lightdm.is_file():
-        fail("etc/lightdm/lightdm.conf is missing (boot would reach a TTY)")
+        fail("lightdm.conf is missing (boot would reach a TTY/greeter)")
     else:
         body = lightdm.read_text(encoding="utf-8")
         checks = {
@@ -543,7 +569,7 @@ def check_live_boot() -> None:
             else:
                 fail(f"lightdm.conf missing {needle!r} ({label})")
 
-    greeter = AIROOTFS / "etc" / "lightdm" / "lightdm-gtk-greeter.conf"
+    greeter = GREETER_CONF
     if greeter.is_file():
         body = greeter.read_text(encoding="utf-8")
         # Two [greeter] groups would be a malformed key file.
@@ -580,6 +606,9 @@ def check_live_boot() -> None:
         "groupadd": "creates the autologin group",
         "autologin": "adds the live user to the autologin group",
         "/etc/pam.d/lightdm-autologin": "touches the lightdm-autologin PAM stack",
+        # Package-owned config paths must be installed post-pacstrap.
+        "OVERLAY/lightdm": "installs the LightDM configs after pacstrap",
+        "OVERLAY/plymouth/plymouthd.conf": "installs plymouthd.conf after pacstrap",
     }
     for needle, label in required_hook.items():
         if needle in hook:
@@ -628,7 +657,7 @@ def check_live_boot() -> None:
             ok(f"plymouth theme file {rel}")
         else:
             fail(f"plymouth theme file missing: {rel}")
-    if "Theme=lucy" in (AIROOTFS / "etc" / "plymouth" / "plymouthd.conf").read_text(encoding="utf-8"):
+    if PLYMOUTH_CONF.is_file() and "Theme=lucy" in PLYMOUTH_CONF.read_text(encoding="utf-8"):
         ok("plymouthd.conf selects the lucy theme")
     else:
         fail("plymouthd.conf does not select the lucy theme")
